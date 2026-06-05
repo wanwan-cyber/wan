@@ -1,0 +1,934 @@
+{\rtf1\ansi\ansicpg950\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!doctype html>\
+<html lang="zh-TW">\
+ <head>\
+  <meta charset="UTF-8">\
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+  <title>\uc0\u31199 \u23627 \u25910 \u36027 \u35352 \u37636 </title>\
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>\
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>\
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">\
+  <style>\
+    body \{ font-family: 'DM Sans', sans-serif; \}\
+    .fade-in \{ animation: fadeIn 0.3s ease; \}\
+    @keyframes fadeIn \{ from \{ opacity: 0; transform: translateY(8px); \} to \{ opacity: 1; transform: translateY(0); \} \}\
+    :root \{ --warm-cream: #faf8f3; --warm-beige: #f5ede3; --soft-sage: #e8f0e8; --warm-green: #a8b89a; --warm-blue: #8b9dc3; --warm-accent: #d4a574; \}\
+  </style>\
+  <script src="/_sdk/resizing_sdk.js" type="text/javascript"></script>\
+ <script src="/_sdk/telemetry_sdk.js"></script></head>\
+ <body data-template-id="__page-root" class="min-h-screen" style="background-color: #faf8f3;">\
+  <header class="w-full px-4 py-6 border-b border-warm-beige">\
+   <div class="max-w-2xl mx-auto">\
+    <h1 data-template-id="app-title" class="canva-text text-center font-bold" style="color: #5a4a3a;"></h1>\
+    <p data-template-id="app-subtitle" class="canva-text text-center mt-1" style="color: #8b7355;"></p>\
+   </div>\
+  </header>\
+  <main class="max-w-2xl mx-auto px-4 pb-8 space-y-6"><!-- Records -->\
+   <div id="records-container">\
+    <p data-template-id="empty-state" id="empty-state" class="canva-text text-center py-10"></p>\
+   </div>\
+   <p id="limit-warning" class="hidden text-center text-red-600 text-sm font-medium mt-2">\uc0\u24050 \u36948  999 \u31558 \u19978 \u38480 \u65292 \u35531 \u20808 \u21034 \u38500 \u33290 \u35352 \u37636 \u12290 </p><!-- Meter Reading Section -->\
+   <section data-template-id="meter-section" class="canva-card rounded-xl p-5" style="background-color: #f5ede3; border: 1px solid #e8dcc9;">\
+    <h2 data-template-id="meter-title" class="canva-text font-semibold mb-4" style="color: #5a4a3a;"></h2>\
+    <div class="grid grid-cols-2 gap-3">\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-meter-room" for="meter-room-select" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <select id="meter-room-select" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green"> <option value="">-- \uc0\u36984 \u25799 \u25151 \u34399  --</option> </select>\
+     </div>\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-meter-month" for="meter-month-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="meter-month-input" type="month" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div class="col-span-2"><label data-template-id="label-meter-reading" for="meter-reading-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="meter-reading-input" type="number" min="0" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green" placeholder="\uc0\u36664 \u20837 \u24230 \u25976 ">\
+     </div>\
+    </div><button data-template-id="meter-btn" type="button" class="canva-button mt-4 w-full py-2.5 rounded-lg font-semibold transition hover:opacity-90"></button>\
+   </section><!-- Payment Form -->\
+   <form id="add-form" data-template-id="form-section" class="canva-card rounded-xl p-5" style="background-color: #f5ede3; border: 1px solid #e8dcc9;">\
+    <h2 data-template-id="form-title" class="canva-text font-semibold mb-4" style="color: #5a4a3a;"></h2>\
+    <div class="grid grid-cols-2 gap-3">\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-room" for="room-select" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <select id="room-select" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green"> <option value="">-- \uc0\u36984 \u25799 \u25151 \u34399  --</option> </select>\
+     </div>\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-month" for="month-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="month-input" type="month" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div><label data-template-id="label-rent-from" for="rent-from-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="rent-from-input" type="text" readonly class="w-full border border-warm-beige bg-stone-100 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green opacity-70 cursor-not-allowed">\
+     </div>\
+     <div><label data-template-id="label-rent-to" for="rent-to-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="rent-to-input" type="text" readonly class="w-full border border-warm-beige bg-stone-100 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green opacity-70 cursor-not-allowed">\
+     </div>\
+     <div><label data-template-id="label-rent" for="rent-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="rent-input" type="number" min="0" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div><label data-template-id="label-elec-this" for="elec-this-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="elec-this-input" type="number" min="0" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div><label data-template-id="label-elec-last" for="elec-last-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="elec-last-input" type="number" min="0" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div><label data-template-id="label-water-persons" for="water-persons-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="water-persons-input" type="number" min="0" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green" value="0">\
+     </div>\
+     <div class="col-span-2"><label data-template-id="label-pay-method" for="pay-method-select" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <select id="pay-method-select" required class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green"> <option value="cash">\uc0\u29694 \u37329 </option> <option value="transfer">\u21295 \u27454 </option> </select>\
+     </div>\
+     <div id="transfer-code-wrapper" class="col-span-2 hidden"><label data-template-id="label-transfer-code" for="transfer-code-input" class="canva-text block text-sm mb-1" style="color: #6b5a45;"></label> <input id="transfer-code-input" type="text" placeholder="\uc0\u26411 \u19977 \u30908 " maxlength="3" class="w-full border border-warm-beige bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-green">\
+     </div>\
+     <div id="total-summary" class="col-span-2 rounded-lg p-3" style="background-color: #e8f0e8; border: 1px solid #d0dfd0;">\
+      <div class="text-xs" style="color: #7a9070;">\
+       \uc0\u25033 \u32371 \u32317 \u38989 \
+      </div>\
+      <div id="total-amount" class="text-2xl font-bold" style="color: #8b9dc3;">\
+       $0\
+      </div>\
+     </div>\
+    </div><button data-template-id="submit-btn" type="submit" class="canva-button mt-4 w-full py-2.5 rounded-lg font-semibold transition hover:opacity-90"></button>\
+   </form><!-- Payment Details by Room -->\
+   <section data-template-id="room-detail-section" class="canva-card rounded-xl p-5" style="background-color: #f5ede3; border: 1px solid #e8dcc9;">\
+    <h2 data-template-id="room-detail-title" class="canva-text font-semibold mb-4"></h2>\
+    <div class="mb-4">\
+     <label data-template-id="label-room-detail" for="detail-room-select" class="canva-text block text-sm mb-2"></label> <select id="detail-room-select" class="w-full border border-gray-600 bg-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"> <option value="">-- \uc0\u36984 \u25799 \u25151 \u34399  --</option> </select>\
+    </div>\
+    <div id="detail-list" class="space-y-3"></div>\
+    <p id="detail-empty-state" class="text-center text-gray-400 text-sm py-4"></p>\
+   </section><!-- Notification Message Generator -->\
+   <section data-template-id="notification-section" class="canva-card rounded-xl p-5">\
+    <h2 data-template-id="notification-title" class="canva-text font-semibold mb-4"></h2>\
+    <div class="grid grid-cols-2 gap-3 mb-4">\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-notif-room" for="notif-room-select" class="canva-text block text-sm mb-1"></label> <select id="notif-room-select" class="w-full border border-gray-600 bg-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"> <option value="">-- \uc0\u36984 \u25799 \u25151 \u34399  --</option> </select>\
+     </div>\
+     <div class="col-span-2 sm:col-span-1"><label data-template-id="label-notif-month" for="notif-month-input" class="canva-text block text-sm mb-1"></label> <input id="notif-month-input" type="month" class="w-full border border-gray-600 bg-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">\
+     </div>\
+    </div>\
+    <div id="notif-output" class="bg-slate-700/50 border border-slate-600 rounded-lg p-4 mb-4 hidden">\
+     <div id="notif-message" class="text-sm text-slate-200 whitespace-pre-wrap font-mono"></div>\
+    </div><button data-template-id="notif-copy-btn" type="button" class="canva-button w-full py-2.5 rounded-lg font-semibold transition hover:opacity-90" disabled></button>\
+   </section><!-- Room Management -->\
+   <section data-template-id="room-section" class="canva-card rounded-xl p-5">\
+    <h2 data-template-id="room-section-title" class="canva-text font-semibold mb-4"></h2>\
+    <div id="room-list" class="space-y-6"></div>\
+   </section><!-- Room Status Overview -->\
+   <section data-template-id="status-section" class="canva-card rounded-xl p-5">\
+    <h2 data-template-id="status-title" class="canva-text font-semibold mb-4"></h2>\
+    <div id="status-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>\
+   </section>\
+  </main>\
+  <template id="record-template">\
+   <div data-template-id="record-card" class="canva-card rounded-xl p-4 mb-3 fade-in">\
+    <div class="flex items-center justify-between">\
+     <div><span data-template-id="record-tenant" class="canva-text font-semibold"></span> <span data-template-id="record-month" class="canva-tag ml-2 text-xs px-2 py-0.5 rounded-full"></span>\
+     </div>\
+     <div class="flex items-center gap-2"><button class="pay-toggle-btn p-1.5 rounded-full transition" title="\uc0\u20999 \u25563 \u20184 \u27454 \u29376 \u24907 "><i data-lucide="check-circle" class="w-5 h-5"></i></button> <button class="delete-btn p-1.5 rounded-full transition text-red-400 hover:text-red-600 hover:bg-red-50" title="\u21034 \u38500 "><i data-lucide="trash-2" class="w-4 h-4"></i></button>\
+     </div>\
+    </div>\
+    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm"><span class="rent-period-display"></span> <span class="rent-display"></span> <span class="elec-display"></span> <span class="water-display"></span> <span class="total-display font-semibold text-emerald-400"></span> <span class="pay-method-display text-teal-300"></span>\
+    </div>\
+    <div class="paid-at-display hidden mt-2 text-xs text-emerald-400 font-medium"></div>\
+    <div class="confirm-delete hidden mt-2 flex items-center gap-2 text-sm"><span class="text-red-600">\uc0\u30906 \u23450 \u21034 \u38500 \u65311 </span> <button class="confirm-yes px-2 py-1 bg-red-500 text-white rounded text-xs">\u21034 \u38500 </button> <button class="confirm-no px-2 py-1 bg-gray-200 rounded text-xs">\u21462 \u28040 </button>\
+    </div>\
+   </div>\
+  </template>\
+  <template id="detail-record-template">\
+   <div class="detail-record-card rounded-lg border border-slate-600 overflow-hidden">\
+    <button type="button" class="detail-record-header w-full bg-slate-700 hover:bg-slate-600 p-3 text-left transition flex items-center justify-between">\
+     <div class="flex-1">\
+      <div class="flex items-center gap-2 mb-1">\
+       <span class="detail-month font-semibold text-white text-sm"></span> <span class="detail-paid-badge text-xs px-2 py-0.5 rounded-full"></span>\
+      </div>\
+      <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-300">\
+       <span class="detail-rent-display"></span> <span class="detail-elec-display"></span> <span class="detail-water-display"></span> <span class="detail-total text-emerald-400 font-semibold"></span>\
+      </div>\
+     </div><i data-lucide="chevron-down" class="detail-expand-icon w-5 h-5 text-slate-400 transition flex-shrink-0"></i> </button>\
+    <div class="detail-content hidden bg-slate-800 p-3 border-t border-slate-600 space-y-3">\
+     <div class="grid grid-cols-2 gap-2">\
+      <div>\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u25151 \u31199 </label> <input type="number" class="detail-rent-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="0">\
+      </div>\
+      <div>\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u26412 \u26376 \u24230 \u25976 </label> <input type="number" class="detail-elec-this-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="0">\
+      </div>\
+      <div>\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u19978 \u26376 \u24230 \u25976 </label> <input type="number" class="detail-elec-last-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="0">\
+      </div>\
+      <div>\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u29992 \u27700 \u20154 \u25976 </label> <input type="number" class="detail-water-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="0">\
+      </div>\
+      <div class="col-span-2">\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u20184 \u27454 \u26041 \u24335 </label> <select class="detail-pay-method-select w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400"> <option value="cash">\u29694 \u37329 </option> <option value="transfer">\u21295 \u27454 </option> </select>\
+      </div>\
+      <div class="col-span-2 detail-transfer-wrapper hidden">\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u21295 \u27454 \u26411 \u19977 \u30908 </label> <input type="text" class="detail-transfer-code-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" maxlength="3" placeholder="\u26411 \u19977 \u30908 ">\
+      </div>\
+      <div class="col-span-2">\
+       <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"> <input type="checkbox" class="detail-paid-checkbox w-4 h-4 rounded border-slate-600 accent-teal-500"> <span>\uc0\u24050 \u20184 \u27454 </span> </label>\
+      </div>\
+      <div class="col-span-2">\
+       <label class="block text-xs text-slate-400 mb-1">\uc0\u32371 \u36027 \u26085 \u26399 \u26178 \u38291 </label> <input type="text" class="detail-paid-at-display w-full bg-slate-700 border border-slate-600 text-slate-300 rounded px-2 py-1.5 text-xs focus:outline-none cursor-not-allowed opacity-70" readonly>\
+      </div>\
+     </div>\
+     <div class="flex gap-2">\
+      <button type="button" class="detail-save-btn flex-1 bg-teal-600 hover:bg-teal-700 text-white px-2 py-2 rounded text-xs font-medium transition disabled:opacity-50">\uc0\u20786 \u23384 </button> <button type="button" class="detail-cancel-btn flex-1 bg-slate-600 hover:bg-slate-700 text-white px-2 py-2 rounded text-xs font-medium transition">\u21462 \u28040 </button>\
+     </div>\
+    </div>\
+   </div>\
+  </template>\
+  <script src="/_sdk/editing_sdk.js"></script>\
+  <script src="/_sdk/data_sdk.js"></script>\
+  <script>\
+    let allRecords = [];\
+    let rooms = [];\
+    let payments = [];\
+    let meters = [];\
+\
+    // Fixed room list grouped by floor\
+    const FIXED_ROOMS = \{\
+      '2F': ['201', '202'],\
+      '3F': ['301', '302'],\
+      '5F': ['501', '502', '503', '505', '506'],\
+      '6F': ['601', '602', '603', '606'],\
+      '7F': ['701', '702', '703', '706'],\
+      '8F': ['801']\
+    \};\
+\
+    const container = document.getElementById('records-container');\
+    const emptyState = document.getElementById('empty-state');\
+    const form = document.getElementById('add-form');\
+    const limitWarning = document.getElementById('limit-warning');\
+    const roomSelect = document.getElementById('room-select');\
+    const roomList = document.getElementById('room-list');\
+    const statusGrid = document.getElementById('status-grid');\
+    const payMethodSelect = document.getElementById('pay-method-select');\
+    const transferCodeWrapper = document.getElementById('transfer-code-wrapper');\
+    const detailRoomSelect = document.getElementById('detail-room-select');\
+    const detailList = document.getElementById('detail-list');\
+    const detailEmptyState = document.getElementById('detail-empty-state');\
+\
+    const handler = \{\
+      onDataChanged(data) \{\
+        allRecords = data;\
+        rooms = data.filter(r => r.record_type === 'room').sort((a, b) => (a.tenant_name || '').localeCompare(b.tenant_name || '', 'en', \{ numeric: true \}));\
+        payments = data.filter(r => r.record_type === 'payment').sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));\
+        meters = data.filter(r => r.record_type === 'meter').sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));\
+        renderRoomList();\
+        renderRoomSelect();\
+        renderMeterRoomSelect();\
+        renderDetailRoomSelect();\
+        renderNotifRoomSelect();\
+        generateNotificationMessage();\
+        renderStatusGrid();\
+        renderRecords();\
+        renderDetailList();\
+      \}\
+    \};\
+\
+    // Initialize fixed rooms on first load\
+    async function initializeFixedRooms() \{\
+      const existingRoomNames = new Set(rooms.map(r => r.tenant_name));\
+      for (const floor in FIXED_ROOMS) \{\
+        for (const roomNum of FIXED_ROOMS[floor]) \{\
+          if (!existingRoomNames.has(roomNum)) \{\
+            await window.dataSdk.create(\{\
+              record_type: 'room',\
+              tenant_name: roomNum,\
+              payment_due_date: 10,\
+              fixed_rent: 0,\
+              occupied: true,\
+              month: '',\
+              rent: 0,\
+              elec_this_month: 0,\
+              elec_last_month: 0,\
+              water_persons: 0,\
+              paid: false,\
+              created_at: new Date().toISOString()\
+            \});\
+          \}\
+        \}\
+      \}\
+    \}\
+\
+    // Toggle transfer code field\
+    payMethodSelect.addEventListener('change', () => \{\
+      const show = payMethodSelect.value === 'transfer';\
+      transferCodeWrapper.classList.toggle('hidden', !show);\
+      if (!show) document.getElementById('transfer-code-input').value = '';\
+    \});\
+\
+    // Calculate total amount in real-time\
+    function updateTotalAmount() \{\
+      const rent = Number(document.getElementById('rent-input').value) || 0;\
+      const elecThis = Number(document.getElementById('elec-this-input').value) || 0;\
+      const elecLast = Number(document.getElementById('elec-last-input').value) || 0;\
+      const waterPersons = Number(document.getElementById('water-persons-input').value) || 0;\
+      const elecFee = Math.max(0, elecThis - elecLast) * 6;\
+      const waterFee = waterPersons * 200;\
+      const total = rent + elecFee + waterFee;\
+      document.getElementById('total-amount').textContent = '$' + total.toLocaleString();\
+    \}\
+\
+    // Listen to form input changes\
+    ['rent-input', 'elec-this-input', 'elec-last-input', 'water-persons-input'].forEach(id => \{\
+      document.getElementById(id).addEventListener('input', updateTotalAmount);\
+    \});\
+\
+    // Initial calculation\
+    updateTotalAmount();\
+\
+    function renderRoomSelect() \{\
+      const val = roomSelect.value;\
+      roomSelect.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        const optgroup = document.createElement('optgroup');\
+        optgroup.label = floor;\
+        \
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          const opt = document.createElement('option');\
+          opt.value = roomNum;\
+          opt.textContent = roomNum + (room && room.occupied ? '' : ' (\uc0\u31354 \u25151 )');\
+          optgroup.appendChild(opt);\
+        \});\
+        \
+        roomSelect.appendChild(optgroup);\
+      \}\
+      roomSelect.value = val;\
+    \}\
+\
+    function autofillRentPeriod() \{\
+      const monthInput = document.getElementById('month-input').value;\
+      const selectedRoom = roomSelect.value;\
+      \
+      // Both month and room must be selected\
+      if (!monthInput || !selectedRoom) \{\
+        document.getElementById('rent-from-input').value = '';\
+        document.getElementById('rent-to-input').value = '';\
+        document.getElementById('elec-this-input').value = '';\
+        document.getElementById('elec-last-input').value = '';\
+        return;\
+      \}\
+      \
+      const room = rooms.find(r => r.tenant_name === selectedRoom);\
+      if (!room) return;\
+      \
+      const dueDate = room.payment_due_date || 10;\
+      const [year, month] = monthInput.split('-');\
+      const currentMonth = parseInt(month);\
+      const currentYear = parseInt(year);\
+      \
+      // Start: previous month's due date (e.g., 2026-08 \uc0\u8594  7/10)\
+      const fromMonth = currentMonth === 1 ? 12 : currentMonth - 1;\
+      const fromYear = currentMonth === 1 ? currentYear - 1 : currentYear;\
+      const fromDay = dueDate;\
+      \
+      // End: current month's due date minus 1 (e.g., 2026-08 due 10 \uc0\u8594  8/9)\
+      const toMonth = currentMonth;\
+      const toDay = dueDate > 1 ? dueDate - 1 : 31;\
+      \
+      document.getElementById('rent-from-input').value = `$\{String(fromMonth).padStart(2, '0')\}/$\{fromDay\}`;\
+      document.getElementById('rent-to-input').value = `$\{String(toMonth).padStart(2, '0')\}/$\{toDay\}`;\
+      document.getElementById('rent-input').value = room.fixed_rent || 0;\
+      \
+      // Auto-fill elec_this_month from meter reading matching room + selected month\
+      const targetMonth = monthInput;\
+      const thisMonthMeter = meters.find(m => m.tenant_name === selectedRoom && m.month === targetMonth);\
+      \
+      if (thisMonthMeter && thisMonthMeter.elec_this_month) \{\
+        document.getElementById('elec-this-input').value = thisMonthMeter.elec_this_month;\
+      \} else \{\
+        document.getElementById('elec-this-input').value = '';\
+      \}\
+      \
+      // Auto-fill elec_last_month from meter reading matching room + PREVIOUS month\
+      // Calculate previous month in YYYY-MM format\
+      let prevMonth = currentMonth - 1;\
+      let prevYear = currentYear;\
+      if (prevMonth < 1) \{\
+        prevMonth = 12;\
+        prevYear = currentYear - 1;\
+      \}\
+      const prevMonthStr = `$\{prevYear\}-$\{String(prevMonth).padStart(2, '0')\}`;\
+      \
+      const lastMonthMeter = meters.find(m => m.tenant_name === selectedRoom && m.month === prevMonthStr);\
+      if (lastMonthMeter && lastMonthMeter.elec_this_month) \{\
+        document.getElementById('elec-last-input').value = lastMonthMeter.elec_this_month;\
+      \} else \{\
+        document.getElementById('elec-last-input').value = '';\
+      \}\
+      \
+      updateTotalAmount();\
+    \}\
+\
+    roomSelect.addEventListener('change', autofillRentPeriod);\
+    document.getElementById('month-input').addEventListener('change', autofillRentPeriod);\
+\
+    function renderMeterRoomSelect() \{\
+      const meterRoomSelect = document.getElementById('meter-room-select');\
+      const val = meterRoomSelect.value;\
+      meterRoomSelect.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        const optgroup = document.createElement('optgroup');\
+        optgroup.label = floor;\
+        \
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          const opt = document.createElement('option');\
+          opt.value = roomNum;\
+          opt.textContent = roomNum + (room && room.occupied ? '' : ' (\uc0\u31354 \u25151 )');\
+          optgroup.appendChild(opt);\
+        \});\
+        \
+        meterRoomSelect.appendChild(optgroup);\
+      \}\
+      meterRoomSelect.value = val;\
+    \}\
+\
+    function renderDetailRoomSelect() \{\
+      const val = detailRoomSelect.value;\
+      detailRoomSelect.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        const optgroup = document.createElement('optgroup');\
+        optgroup.label = floor;\
+        \
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          const opt = document.createElement('option');\
+          opt.value = roomNum;\
+          opt.textContent = roomNum + (room && room.occupied ? '' : ' (\uc0\u31354 \u25151 )');\
+          optgroup.appendChild(opt);\
+        \});\
+        \
+        detailRoomSelect.appendChild(optgroup);\
+      \}\
+      detailRoomSelect.value = val;\
+    \}\
+\
+    const meterBtn = document.querySelector('[data-template-id="meter-btn"]');\
+    meterBtn.addEventListener('click', async (e) => \{\
+      e.preventDefault();\
+      const selectedRoom = document.getElementById('meter-room-select').value;\
+      const meterMonth = document.getElementById('meter-month-input').value;\
+      const reading = document.getElementById('meter-reading-input').value.trim();\
+      if (!selectedRoom || !meterMonth || !reading) \{\
+        showToast('\uc0\u35531 \u36984 \u25799 \u25151 \u34399 \u12289 \u26376 \u20221 \u20006 \u36664 \u20837 \u24230 \u25976 ');\
+        return;\
+      \}\
+      meterBtn.disabled = true;\
+      meterBtn.style.opacity = '0.6';\
+      const result = await window.dataSdk.create(\{\
+        record_type: 'meter',\
+        tenant_name: selectedRoom,\
+        month: meterMonth,\
+        elec_this_month: Number(reading),\
+        created_at: new Date().toISOString(),\
+        rent: 0,\
+        elec_last_month: 0,\
+        water_persons: 0,\
+        payment_due_date: 0,\
+        paid: false,\
+        occupied: true,\
+        rent_from: '',\
+        rent_to: '',\
+        pay_method: '',\
+        transfer_code: '',\
+        fixed_rent: 0\
+      \});\
+      if (result.isOk) \{\
+        document.getElementById('meter-room-select').value = '';\
+        document.getElementById('meter-month-input').value = '';\
+        document.getElementById('meter-reading-input').value = '';\
+        showToast('\uc0\u24230 \u25976 \u24050 \u20786 \u23384 ');\
+      \} else \{\
+        showToast('\uc0\u20786 \u23384 \u22833 \u25943 \u65292 \u35531 \u37325 \u35430 ');\
+      \}\
+      meterBtn.disabled = false;\
+      meterBtn.style.opacity = '1';\
+    \});\
+\
+    detailRoomSelect.addEventListener('change', renderDetailList);\
+\
+    // Notification message generator\
+    const notifRoomSelect = document.getElementById('notif-room-select');\
+    const notifMonthInput = document.getElementById('notif-month-input');\
+    const notifOutput = document.getElementById('notif-output');\
+    const notifMessage = document.getElementById('notif-message');\
+    const notifCopyBtn = document.querySelector('[data-template-id="notif-copy-btn"]');\
+\
+    function renderNotifRoomSelect() \{\
+      const val = notifRoomSelect.value;\
+      notifRoomSelect.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        const optgroup = document.createElement('optgroup');\
+        optgroup.label = floor;\
+        \
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          const opt = document.createElement('option');\
+          opt.value = roomNum;\
+          opt.textContent = roomNum + (room && room.occupied ? '' : ' (\uc0\u31354 \u25151 )');\
+          optgroup.appendChild(opt);\
+        \});\
+        \
+        notifRoomSelect.appendChild(optgroup);\
+      \}\
+      notifRoomSelect.value = val;\
+    \}\
+\
+    function generateNotificationMessage() \{\
+      const selectedRoom = notifRoomSelect.value;\
+      const selectedMonth = notifMonthInput.value;\
+\
+      if (!selectedRoom || !selectedMonth) \{\
+        notifOutput.classList.add('hidden');\
+        notifCopyBtn.disabled = true;\
+        return;\
+      \}\
+\
+      // Find payment record for this room + month\
+      const paymentRecord = payments.find(p => p.tenant_name === selectedRoom && p.month === selectedMonth);\
+\
+      if (!paymentRecord) \{\
+        notifOutput.classList.add('hidden');\
+        notifCopyBtn.disabled = true;\
+        return;\
+      \}\
+\
+      const rent = paymentRecord.rent || 0;\
+      const elecThis = paymentRecord.elec_this_month || 0;\
+      const elecLast = paymentRecord.elec_last_month || 0;\
+      const waterPersons = paymentRecord.water_persons || 0;\
+\
+      const elecFee = Math.max(0, elecThis - elecLast) * 6;\
+      const waterFee = waterPersons * 200;\
+      const total = rent + elecFee + waterFee;\
+\
+      const message = `$\{selectedRoom\} \uc0\u25151  $\{selectedMonth\} \u32371 \u36027 \u36890 \u30693 \\n\\n\u12304 \u25033 \u32371 \u36027 \u29992 \u26126 \u32048 \u12305 \\n\u25151 \u31199 \u65306 $$\{rent.toLocaleString()\}\\n\\n\u38651 \u36027 \u65306 $$\{elecFee.toLocaleString()\}\\n\u65288 \u26412 \u26376 \u24230 \u25976  $\{elecThis\} - \u19978 \u26376 \u24230 \u25976  $\{elecLast\} = $\{elecThis - elecLast\} \u24230  \'d7 $6\u65289 \\n\\n\u27700 \u36027 \u65306 $$\{waterFee.toLocaleString()\}\\n\u65288 $\{waterPersons\} \u20154  \'d7 $200\u65289 \\n\\n\u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \\n\u21512 \u35336 \u25033 \u32371 \u65306 $$\{total.toLocaleString()\}\\n\u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 \u9473 `;\
+\
+      notifMessage.textContent = message;\
+      notifOutput.classList.remove('hidden');\
+      notifCopyBtn.disabled = false;\
+    \}\
+\
+    notifRoomSelect.addEventListener('change', generateNotificationMessage);\
+    notifMonthInput.addEventListener('change', generateNotificationMessage);\
+\
+    notifCopyBtn.addEventListener('click', () => \{\
+      const text = notifMessage.textContent;\
+      navigator.clipboard.writeText(text).then(() => \{\
+        showToast('\uc0\u24050 \u35079 \u35069 \u21040 \u21098 \u36028 \u31807 ');\
+      \}).catch(() => \{\
+        showToast('\uc0\u35079 \u35069 \u22833 \u25943 ');\
+      \});\
+    \});\
+\
+    function renderRoomList() \{\
+      roomList.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        const floorDiv = document.createElement('div');\
+        floorDiv.className = 'mb-16';\
+        \
+        const floorLabel = document.createElement('h3');\
+        floorLabel.className = 'text-teal-400 font-semibold text-base mb-6';\
+        floorLabel.textContent = floor;\
+        floorDiv.appendChild(floorLabel);\
+        \
+        const roomsContainer = document.createElement('div');\
+        roomsContainer.className = 'grid grid-cols-1 sm:grid-cols-2 gap-6';\
+        \
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          if (!room) return;\
+          \
+          const roomDiv = document.createElement('div');\
+          roomDiv.className = 'rounded-lg px-5 py-4 text-sm text-white border border-slate-600 bg-slate-700/50';\
+          roomDiv.innerHTML = `\
+            <div class="flex items-center justify-between mb-4">\
+              <span class="text-lg font-semibold">$\{roomNum\}</span>\
+              <div class="flex items-center gap-2">\
+                <button class="occ-btn px-3 py-1 rounded text-xs $\{room.occupied ? 'bg-emerald-600' : 'bg-orange-500'\}">$\{room.occupied ? '\uc0\u26377 \u20154 ' : '\u31354 '\}</button>\
+                <button class="edit-btn px-3 py-1 rounded text-xs bg-teal-600 hover:bg-teal-700 transition">\uc0\u32232 \u36655 </button>\
+              </div>\
+            </div>\
+            <div class="edit-fields hidden space-y-3 border-t border-slate-600 pt-3 mt-3">\
+              <div>\
+                <label class="block text-xs text-slate-400 mb-1">\uc0\u22266 \u23450 \u31199 \u37329  (NT$)</label>\
+                <input type="number" class="fixed-rent-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="0" value="$\{room.fixed_rent || 0\}">\
+              </div>\
+              <div>\
+                <label class="block text-xs text-slate-400 mb-1">\uc0\u32371 \u36027 \u26085 \u26399 </label>\
+                <input type="number" class="due-date-input w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400" min="1" max="31" value="$\{room.payment_due_date || 10\}">\
+              </div>\
+              <div class="flex gap-2">\
+                <button type="button" class="save-room-btn flex-1 bg-teal-600 hover:bg-teal-700 text-white px-2 py-2 rounded text-xs font-medium transition disabled:opacity-50">\uc0\u20786 \u23384 </button>\
+                <button type="button" class="cancel-room-btn flex-1 bg-slate-600 hover:bg-slate-700 text-white px-2 py-2 rounded text-xs font-medium transition">\uc0\u21462 \u28040 </button>\
+              </div>\
+            </div>`;\
+          \
+          const editBtn = roomDiv.querySelector('.edit-btn');\
+          const occBtn = roomDiv.querySelector('.occ-btn');\
+          const editFields = roomDiv.querySelector('.edit-fields');\
+          const saveBtn = roomDiv.querySelector('.save-room-btn');\
+          const cancelBtn = roomDiv.querySelector('.cancel-room-btn');\
+          const fixedRentInput = roomDiv.querySelector('.fixed-rent-input');\
+          const dueDateInput = roomDiv.querySelector('.due-date-input');\
+          \
+          editBtn.addEventListener('click', () => \{\
+            editFields.classList.remove('hidden');\
+            editBtn.disabled = true;\
+            occBtn.disabled = true;\
+          \});\
+          \
+          cancelBtn.addEventListener('click', () => \{\
+            editFields.classList.add('hidden');\
+            editBtn.disabled = false;\
+            occBtn.disabled = false;\
+            fixedRentInput.value = room.fixed_rent || 0;\
+            dueDateInput.value = room.payment_due_date || 10;\
+          \});\
+          \
+          saveBtn.addEventListener('click', async () => \{\
+            saveBtn.disabled = true;\
+            const updatedRoom = \{\
+              ...room,\
+              fixed_rent: Number(fixedRentInput.value) || 0,\
+              payment_due_date: Number(dueDateInput.value) || 10\
+            \};\
+            const result = await window.dataSdk.update(updatedRoom);\
+            saveBtn.disabled = false;\
+            if (result.isOk) \{\
+              editFields.classList.add('hidden');\
+              editBtn.disabled = false;\
+              occBtn.disabled = false;\
+              showToast('\uc0\u24050 \u20786 \u23384 ');\
+            \} else \{\
+              showToast('\uc0\u20786 \u23384 \u22833 \u25943 \u65292 \u35531 \u37325 \u35430 ');\
+            \}\
+          \});\
+          \
+          occBtn.addEventListener('click', async () => \{\
+            occBtn.disabled = true;\
+            await window.dataSdk.update(\{ ...room, occupied: !room.occupied \});\
+            occBtn.disabled = false;\
+          \});\
+          \
+          roomsContainer.appendChild(roomDiv);\
+        \});\
+        \
+        floorDiv.appendChild(roomsContainer);\
+        roomList.appendChild(floorDiv);\
+      \}\
+      lucide.createIcons();\
+    \}\
+\
+    function renderStatusGrid() \{\
+      statusGrid.innerHTML = '';\
+      \
+      for (const floor in FIXED_ROOMS) \{\
+        // Add floor header\
+        const floorHeader = document.createElement('div');\
+        floorHeader.className = 'col-span-full';\
+        floorHeader.innerHTML = `<h3 class="text-teal-400 font-semibold text-base mb-3">$\{floor\}</h3>`;\
+        statusGrid.appendChild(floorHeader);\
+        \
+        // Add rooms for this floor\
+        FIXED_ROOMS[floor].forEach(roomNum => \{\
+          const room = rooms.find(r => r.tenant_name === roomNum);\
+          if (!room) return;\
+          \
+          const div = document.createElement('div');\
+          const occ = room.occupied;\
+          div.className = `rounded-lg p-4 text-center text-base $\{occ ? 'bg-emerald-900/40 border border-emerald-700' : 'bg-orange-900/30 border border-orange-700'\}`;\
+          \
+          if (occ) \{\
+            // Occupied: show room, occupancy status, and due date\
+            div.innerHTML = `<div class="font-semibold text-white text-lg">$\{roomNum\}</div>\
+              <div class="text-sm mt-2 text-emerald-300">\uc0\u26377 \u20154 \u20303 </div>\
+              <div class="text-sm text-slate-300 mt-1">$\{room.payment_due_date || '?'\} \uc0\u34399 \u32371 \u36027 </div>`;\
+          \} else \{\
+            // Vacant: show room and rental price only\
+            div.innerHTML = `<div class="font-semibold text-white text-lg">$\{roomNum\}</div>\
+              <div class="text-sm mt-2 text-orange-300">$$\{(room.fixed_rent || 0).toLocaleString()\}</div>`;\
+          \}\
+          \
+          statusGrid.appendChild(div);\
+        \});\
+      \}\
+    \}\
+\
+    function renderRecords() \{\
+      emptyState.classList.toggle('hidden', payments.length > 0);\
+      const existing = new Map([...container.querySelectorAll('[data-record-id]')].map(el => [el.dataset.recordId, el]));\
+      const fragment = document.createDocumentFragment();\
+      payments.forEach(record => \{\
+        const id = record.__backendId;\
+        let el = existing.get(id);\
+        if (el) \{ updateRecordEl(el, record); existing.delete(id); \}\
+        else \{ el = createRecordEl(record); el.dataset.recordId = id; \}\
+        fragment.appendChild(el);\
+      \});\
+      existing.forEach(el => el.remove());\
+      container.appendChild(fragment);\
+    \}\
+\
+    function renderDetailList() \{\
+      const selectedRoom = detailRoomSelect.value;\
+      if (!selectedRoom) \{\
+        detailList.innerHTML = '';\
+        detailEmptyState.textContent = '\uc0\u35531 \u36984 \u25799 \u25151 \u34399 \u26597 \u30475 \u32371 \u36027 \u26126 \u32048 ';\
+        detailEmptyState.classList.remove('hidden');\
+        return;\
+      \}\
+      \
+      const roomPayments = payments.filter(r => r.tenant_name === selectedRoom).sort((a, b) => (b.month || '').localeCompare(a.month || ''));\
+      \
+      if (roomPayments.length === 0) \{\
+        detailList.innerHTML = '';\
+        detailEmptyState.textContent = `$\{selectedRoom\} \uc0\u26283 \u28961 \u32371 \u36027 \u32000 \u37636 `;\
+        detailEmptyState.classList.remove('hidden');\
+        return;\
+      \}\
+      \
+      detailEmptyState.classList.add('hidden');\
+      const existing = new Map([...detailList.querySelectorAll('[data-detail-id]')].map(el => [el.dataset.detailId, el]));\
+      const fragment = document.createDocumentFragment();\
+      \
+      roomPayments.forEach(record => \{\
+        const id = record.__backendId;\
+        let el = existing.get(id);\
+        if (el) \{ updateDetailEl(el, record); existing.delete(id); \}\
+        else \{ el = createDetailEl(record); el.dataset.detailId = id; \}\
+        fragment.appendChild(el);\
+      \});\
+      \
+      existing.forEach(el => el.remove());\
+      detailList.appendChild(fragment);\
+      lucide.createIcons();\
+    \}\
+\
+    function createRecordEl(record) \{\
+      const tpl = document.getElementById('record-template');\
+      const clone = tpl.content.cloneNode(true);\
+      const div = clone.firstElementChild;\
+      div.dataset.recordId = record.__backendId;\
+      updateRecordEl(div, record);\
+      div.querySelector('.pay-toggle-btn').addEventListener('click', async () => \{\
+        const btn = div.querySelector('.pay-toggle-btn');\
+        btn.disabled = true;\
+        const updatedRecord = \{ \
+          ...record, \
+          paid: !record.paid,\
+          paid_at: !record.paid ? new Date().toISOString() : null\
+        \};\
+        const result = await window.dataSdk.update(updatedRecord);\
+        btn.disabled = false;\
+        if (result.isError) showToast('\uc0\u26356 \u26032 \u22833 \u25943 ');\
+      \});\
+      div.querySelector('.delete-btn').addEventListener('click', () => \{ div.querySelector('.confirm-delete').classList.remove('hidden'); \});\
+      div.querySelector('.confirm-no').addEventListener('click', () => \{ div.querySelector('.confirm-delete').classList.add('hidden'); \});\
+      div.querySelector('.confirm-yes').addEventListener('click', async () => \{\
+        const btn = div.querySelector('.confirm-yes');\
+        btn.disabled = true; btn.textContent = '...';\
+        const result = await window.dataSdk.delete(record);\
+        if (result.isError) \{ showToast('\uc0\u21034 \u38500 \u22833 \u25943 '); btn.disabled = false; btn.textContent = '\u21034 \u38500 '; \}\
+      \});\
+      lucide.createIcons();\
+      return div;\
+    \}\
+\
+    function updateRecordEl(el, record) \{\
+      el.querySelector('[data-template-id="record-tenant"]').textContent = record.tenant_name || '';\
+      el.querySelector('[data-template-id="record-month"]').textContent = record.month || '';\
+      \
+      // Display rent period with month/day format (e.g., "6/10\uc0\u65374 7/9")\
+      el.querySelector('.rent-period-display').textContent = `$\{record.rent_from || '?'\}\uc0\u65374 $\{record.rent_to || '?'\}`;\
+      el.querySelector('.rent-display').textContent = `\uc0\u25151 \u31199 \u65306 $$\{(record.rent || 0).toLocaleString()\}`;\
+      const elecFee = Math.max(0, (record.elec_this_month || 0) - (record.elec_last_month || 0)) * 6;\
+      el.querySelector('.elec-display').textContent = `\uc0\u38651 \u36027 \u65306 $$\{elecFee.toLocaleString()\}`;\
+      const waterFee = (record.water_persons || 0) * 200;\
+      el.querySelector('.water-display').textContent = `\uc0\u27700 \u36027 \u65306 $$\{waterFee.toLocaleString()\}`;\
+      const total = (record.rent || 0) + elecFee + waterFee;\
+      el.querySelector('.total-display').textContent = `\uc0\u21512 \u35336 \u65306 $$\{total.toLocaleString()\}`;\
+      const payMethodDisplay = el.querySelector('.pay-method-display');\
+      if (record.pay_method === 'transfer') \{\
+        const code = record.transfer_code || '???';\
+        payMethodDisplay.textContent = `\uc0\u21295 \u27454  $\{code\}`;\
+      \} else \{\
+        payMethodDisplay.textContent = '\uc0\u29694 \u37329 ';\
+      \}\
+      const toggleBtn = el.querySelector('.pay-toggle-btn');\
+      if (record.paid) \{ \
+        toggleBtn.classList.add('text-emerald-500', 'bg-emerald-50'); \
+        toggleBtn.classList.remove('text-gray-400');\
+        // Display paid date/time if available\
+        const paidAtDisplay = el.querySelector('.paid-at-display');\
+        if (paidAtDisplay && record.paid_at) \{\
+          const paidDate = new Date(record.paid_at);\
+          const formatted = paidDate.toLocaleString('zh-TW', \{ year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' \});\
+          paidAtDisplay.textContent = `\uc0\u10003  \u24050 \u26044  $\{formatted\} \u32371 \u36027 `;\
+          paidAtDisplay.classList.remove('hidden');\
+        \}\
+      \}\
+      else \{ \
+        toggleBtn.classList.remove('text-emerald-500', 'bg-emerald-50'); \
+        toggleBtn.classList.add('text-gray-400');\
+        // Hide paid date/time display when not paid\
+        const paidAtDisplay = el.querySelector('.paid-at-display');\
+        if (paidAtDisplay) paidAtDisplay.classList.add('hidden');\
+      \}\
+    \}\
+\
+    function createDetailEl(record) \{\
+      const tpl = document.getElementById('detail-record-template');\
+      const clone = tpl.content.cloneNode(true);\
+      const card = clone.querySelector('.detail-record-card');\
+      card.dataset.detailId = record.__backendId;\
+      updateDetailEl(card, record);\
+      \
+      const header = card.querySelector('.detail-record-header');\
+      const content = card.querySelector('.detail-content');\
+      const expandIcon = card.querySelector('.detail-expand-icon');\
+      \
+      header.addEventListener('click', () => \{\
+        const isOpen = !content.classList.contains('hidden');\
+        content.classList.toggle('hidden');\
+        expandIcon.style.transform = isOpen ? '' : 'rotate(180deg)';\
+      \});\
+      \
+      const payMethodSelect = card.querySelector('.detail-pay-method-select');\
+      const transferWrapper = card.querySelector('.detail-transfer-wrapper');\
+      \
+      payMethodSelect.addEventListener('change', () => \{\
+        const show = payMethodSelect.value === 'transfer';\
+        transferWrapper.classList.toggle('hidden', !show);\
+      \});\
+      \
+      const saveBtn = card.querySelector('.detail-save-btn');\
+      const cancelBtn = card.querySelector('.detail-cancel-btn');\
+      \
+      saveBtn.addEventListener('click', async () => \{\
+        saveBtn.disabled = true;\
+        const updatedRecord = \{\
+          ...record,\
+          rent: Number(card.querySelector('.detail-rent-input').value) || 0,\
+          elec_this_month: Number(card.querySelector('.detail-elec-this-input').value) || 0,\
+          elec_last_month: Number(card.querySelector('.detail-elec-last-input').value) || 0,\
+          water_persons: Number(card.querySelector('.detail-water-input').value) || 0,\
+          pay_method: payMethodSelect.value,\
+          transfer_code: payMethodSelect.value === 'transfer' ? card.querySelector('.detail-transfer-code-input').value.trim() : '',\
+          paid: card.querySelector('.detail-paid-checkbox').checked,\
+          paid_at: card.querySelector('.detail-paid-checkbox').checked ? (record.paid_at || new Date().toISOString()) : null\
+        \};\
+        \
+        const result = await window.dataSdk.update(updatedRecord);\
+        saveBtn.disabled = false;\
+        if (result.isOk) \{\
+          content.classList.add('hidden');\
+          expandIcon.style.transform = '';\
+          showToast('\uc0\u24050 \u20786 \u23384 ');\
+        \} else \{\
+          showToast('\uc0\u20786 \u23384 \u22833 \u25943 \u65292 \u35531 \u37325 \u35430 ');\
+        \}\
+      \});\
+      \
+      cancelBtn.addEventListener('click', () => \{\
+        updateDetailEl(card, record);\
+        content.classList.add('hidden');\
+        expandIcon.style.transform = '';\
+      \});\
+      \
+      return card;\
+    \}\
+\
+    function updateDetailEl(el, record) \{\
+      el.querySelector('.detail-month').textContent = record.month || '';\
+      const elecFee = Math.max(0, (record.elec_this_month || 0) - (record.elec_last_month || 0)) * 6;\
+      const waterFee = (record.water_persons || 0) * 200;\
+      const total = (record.rent || 0) + elecFee + waterFee;\
+      \
+      el.querySelector('.detail-rent-display').textContent = `\uc0\u25151 \u31199 \u65306 $$\{(record.rent || 0).toLocaleString()\}`;\
+      el.querySelector('.detail-elec-display').textContent = `\uc0\u38651 \u36027 \u65306 $$\{elecFee.toLocaleString()\}`;\
+      el.querySelector('.detail-water-display').textContent = `\uc0\u27700 \u36027 \u65306 $$\{waterFee.toLocaleString()\}`;\
+      el.querySelector('.detail-total').textContent = `\uc0\u21512 \u35336 \u65306 $$\{total.toLocaleString()\}`;\
+      \
+      const badge = el.querySelector('.detail-paid-badge');\
+      if (record.paid) \{\
+        badge.textContent = '\uc0\u24050 \u20184 \u27454 ';\
+        badge.className = 'detail-paid-badge text-xs px-2 py-0.5 rounded-full bg-emerald-600 text-white';\
+      \} else \{\
+        badge.textContent = '\uc0\u26410 \u20184 \u27454 ';\
+        badge.className = 'detail-paid-badge text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white';\
+      \}\
+      \
+      el.querySelector('.detail-rent-input').value = record.rent || 0;\
+      el.querySelector('.detail-elec-this-input').value = record.elec_this_month || 0;\
+      el.querySelector('.detail-elec-last-input').value = record.elec_last_month || 0;\
+      el.querySelector('.detail-water-input').value = record.water_persons || 0;\
+      el.querySelector('.detail-pay-method-select').value = record.pay_method || 'cash';\
+      el.querySelector('.detail-transfer-code-input').value = record.transfer_code || '';\
+      el.querySelector('.detail-paid-checkbox').checked = record.paid || false;\
+      \
+      // Display paid date/time if available\
+      const paidAtDisplay = el.querySelector('.detail-paid-at-display');\
+      if (record.paid && record.paid_at) \{\
+        const paidDate = new Date(record.paid_at);\
+        const formatted = paidDate.toLocaleString('zh-TW', \{ year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' \});\
+        paidAtDisplay.value = formatted;\
+      \} else \{\
+        paidAtDisplay.value = '';\
+      \}\
+      \
+      const transferWrapper = el.querySelector('.detail-transfer-wrapper');\
+      transferWrapper.classList.toggle('hidden', (record.pay_method || 'cash') !== 'transfer');\
+    \}\
+\
+    // Submit payment\
+    form.addEventListener('submit', async (e) => \{\
+      e.preventDefault();\
+      if (allRecords.length >= 999) \{ limitWarning.classList.remove('hidden'); return; \}\
+      const selectedRoom = roomSelect.value;\
+      if (!selectedRoom) return;\
+      const roomRecord = rooms.find(r => r.tenant_name === selectedRoom);\
+      const payMethod = payMethodSelect.value;\
+      const transferCode = payMethod === 'transfer' ? document.getElementById('transfer-code-input').value.trim() : '';\
+      if (payMethod === 'transfer' && !transferCode) \{\
+        showToast('\uc0\u21295 \u27454 \u26411 \u19977 \u30908 \u19981 \u33021 \u28858 \u31354 ');\
+        return;\
+      \}\
+      const btn = form.querySelector('[data-template-id="submit-btn"]');\
+      btn.disabled = true; btn.style.opacity = '0.6';\
+      const result = await window.dataSdk.create(\{\
+        record_type: 'payment',\
+        tenant_name: selectedRoom,\
+        month: document.getElementById('month-input').value,\
+        rent_from: document.getElementById('rent-from-input').value,\
+        rent_to: document.getElementById('rent-to-input').value,\
+        rent: Number(document.getElementById('rent-input').value),\
+        elec_this_month: Number(document.getElementById('elec-this-input').value),\
+        elec_last_month: Number(document.getElementById('elec-last-input').value),\
+        water_persons: Number(document.getElementById('water-persons-input').value),\
+        payment_due_date: roomRecord ? roomRecord.payment_due_date : 0,\
+        paid: false,\
+        occupied: true,\
+        pay_method: payMethod,\
+        transfer_code: transferCode,\
+        created_at: new Date().toISOString()\
+      \});\
+      if (result.isOk) \{ form.reset(); payMethodSelect.value = 'cash'; transferCodeWrapper.classList.add('hidden'); \} else \{ showToast('\uc0\u26032 \u22686 \u22833 \u25943 \u65292 \u35531 \u37325 \u35430 '); \}\
+      btn.disabled = false; btn.style.opacity = '1';\
+    \});\
+\
+    function showToast(msg) \{\
+      const t = document.createElement('div');\
+      t.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm z-50';\
+      t.textContent = msg;\
+      document.body.appendChild(t);\
+      setTimeout(() => t.remove(), 2500);\
+    \}\
+\
+    (async () => \{\
+      const r = await window.dataSdk.init(handler);\
+      if (r.isError) showToast('\uc0\u36039 \u26009 \u36617 \u20837 \u22833 \u25943 ');\
+      // Initialize fixed rooms after SDK is ready\
+      setTimeout(() => initializeFixedRooms(), 100);\
+      lucide.createIcons();\
+    \})();\
+  </script>\
+ <script>(function()\{function c()\{var b=a.contentDocument||a.contentWindow.document;if(b)\{var d=b.createElement('script');d.innerHTML="window.__CF$cv$params=\{r:'a06d3000aaee8416',t:'MTc4MDY0MTY0Mw=='\};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)\}\}if(document.body)\{var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else\{var e=document.onreadystatechange||function()\{\};document.onreadystatechange=function(b)\{e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())\}\}\}\})();</script></body>\
+</html>}
