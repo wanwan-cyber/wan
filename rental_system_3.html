@@ -1,147 +1,38 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>套房管理系統</title>
-    <style>
-        :root { --bg-cream: #f9f6f0; --accent-wood: #8c7662; --gray-brown: #dcd5cc; --text-dark: #4a423a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-cream); color: var(--text-dark); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { color: var(--accent-wood); margin-bottom: 5px; }
-        .subtitle { font-size: 14px; color: #a1958a; margin-bottom: 20px; }
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
-        .room-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid var(--gray-brown); transition: transform 0.2s; }
-        .room-card:hover { transform: translateY(-2px); }
-        .room-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--bg-cream); padding-bottom: 10px; margin-bottom: 15px; }
-        .room-title { font-size: 18px; font-weight: bold; color: var(--accent-wood); }
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; user-select: none; font-weight: bold; }
-        .status-rented { background-color: #e6eedc; color: #5b7a43; }
-        .status-vacant { background-color: #fcedea; color: #c25c4d; }
-        .input-group { display: flex; align-items: center; margin-bottom: 10px; }
-        .input-group label { width: 80px; font-size: 14px; }
-        .input-group input { flex: 1; padding: 6px; border: 1px solid var(--gray-brown); border-radius: 6px; background-color: var(--bg-cream); color: var(--text-dark); }
-        .checkbox-group { display: flex; align-items: center; margin-top: 15px; font-size: 14px; }
-        .checkbox-group input { margin-right: 8px; width: 16px; height: 16px; accent-color: var(--accent-wood); }
-        .sync-status { font-size: 12px; color: #b5a99e; text-align: center; margin-top: 20px; }
-    </style>
-</head>
-<body>
 
-    <h1>套房管理系統</h1>
-    <div class="subtitle">共 19 間套房 ｜ 🏡 點擊狀態可切換出租/空置</div>
-    
-    <div id="loading" style="color: var(--accent-wood); margin: 20px;">正在連線 Google 雲端資料庫...</div>
-    <div class="grid-container" id="roomsGrid"></div>
-    <div class="sync-status" id="syncStatus">資料已與 Google 雲端同步</div>
+套房管理系統
+共 19 間套房
+主選單
+📊
+總覽
+房間
+🏠
+房號管理
+🗺️
+房間狀態
+帳務
+⚡
+抄表紀錄
+💰
+繳費明細
+📋
+繳費紀錄
+📢
+繳費通知
+管理
+📅
+合約到期
+⚙️
+系統設定
+已出租 — / —
 
-    <script>
-        const cloudUrl = 'https://script.google.com/macros/s/AKfycbwPuIcbOtyCEsccWxkQlqVnSRGDdibP7X03JaJCiqdQaFrZPq9ktoeftIY9wGzxvBurAg/exec';
-        let roomsData = [];
+總覽
 
-        // 初始化 19 間套房預設資料
-        function generateDefaultRooms() {
-            const defaultRooms = [];
-            for (let i = 1; i <= 19; i++) {
-                const roomNo = i < 10 ? '0' + i : i;
-                defaultRooms.push({ id: `房間 ${roomNo}`, status: '空置', meter: '0', payment: '未繳費' });
-            }
-            return defaultRooms;
-        }
 
-        // 從雲端載入
-        function loadFromCloud() {
-            document.getElementById('loading').style.display = 'block';
-            fetch(cloudUrl)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('loading').style.display = 'none';
-                    if (data.status === "empty" || !Array.isArray(data)) {
-                        roomsData = generateDefaultRooms();
-                        saveToCloud(); // 第一次初始化寫入雲端
-                    } else {
-                        roomsData = data;
-                        renderGrid();
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    document.getElementById('loading').innerText = '雲端載入失敗，切換為本地模式';
-                    roomsData = generateDefaultRooms();
-                    renderGrid();
-                });
-        }
+🏠 我的小房子
+點亮的窗戶＝有人住
 
-        // 儲存至雲端
-        function saveToCloud() {
-            document.getElementById('syncStatus').innerText = '正在同步至 Google 雲端...';
-            fetch(cloudUrl, {
-                method: 'POST',
-                body: JSON.stringify(roomsData)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === 'success') {
-                    document.getElementById('syncStatus').innerText = '✨ 資料已完美同步至 Google 試算表';
-                }
-            })
-            .catch(err => {
-                document.getElementById('syncStatus').innerText = '❌ 同步失敗，請檢查網路';
-                console.error(err);
-            });
-        }
+本月繳費狀況
 
-        // 渲染畫面
-        function renderGrid() {
-            const grid = document.getElementById('roomsGrid');
-            grid.innerHTML = '';
-            
-            roomsData.forEach((room, index) => {
-                const card = document.createElement('div');
-                card.className = 'room-card';
-                
-                const isRented = room.status === '已出租';
-                const isPaid = room.payment === '已繳費';
-                
-                card.innerHTML = `
-                    <div class="room-header">
-                        <div class="room-title">${room.id}</div>
-                        <div class="status-badge ${isRented ? 'status-rented' : 'status-vacant'}" id="status-${index}">
-                            ${room.status}
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>電表度數</label>
-                        <input type="number" value="${room.meter}" id="meter-${index}">
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" ${isPaid ? 'checked' : ''} id="pay-${index}">
-                        <label>本月已完成繳費</label>
-                    </div>
-                `;
-                grid.appendChild(card);
 
-                // 事件綁定：切換狀態
-                document.getElementById(`status-${index}`).addEventListener('click', () => {
-                    roomsData[index].status = roomsData[index].status === '已出租' ? '空置' : '已出租';
-                    renderGrid();
-                    saveToCloud();
-                });
+最近抄表
 
-                // 事件綁定：輸入電表
-                document.getElementById(`meter-${index}`).addEventListener('change', (e) => {
-                    roomsData[index].meter = e.target.value;
-                    saveToCloud();
-                });
-
-                // 事件綁定：勾選繳費
-                document.getElementById(`pay-${index}`).addEventListener('change', (e) => {
-                    roomsData[index].payment = e.target.checked ? '已繳費' : '未繳費';
-                    saveToCloud();
-                });
-            });
-        }
-
-            window.onload = loadFromCloud;
-    </script>
-</body>
-</html>
