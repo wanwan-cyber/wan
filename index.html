@@ -407,7 +407,7 @@ textarea{resize:vertical;min-height:72px;}
       <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
       <h2 id="pageTitle">總覽</h2>
       <span class="topbar-date" id="topbarDate"></span>
-      <span class="sync-badge" id="syncBadge" onclick="loadFromCloud()" title="點擊立即同步">☁️ 未連線</span>
+      <span class="sync-badge" id="syncBadge" onclick="manualSync()" title="點擊立即上傳本機並重新拉取雲端資料">☁️ 未連線</span>
     </div>
     <div class="topbar-actions" id="topbarActions"></div>
   </div>
@@ -787,13 +787,21 @@ function setSyncState(s){
   const map={idle:{t:'☁️ 未連線',c:''},loading:{t:'⏳ 載入中…',c:'s-loading'},saving:{t:'⏳ 同步中…',c:'s-saving'},saved:{t:'✅ 已同步',c:'s-saved'},error:{t:'⚠️ 同步失敗 (點擊重試)',c:'s-error'}};
   const m=map[s]||map.idle; el.textContent=m.t; if(m.c) el.classList.add(m.c);
 }
+// 手動觸發完整同步：先上傳本機 → 再從雲端拉最新
+async function manualSync(){
+  await saveToCloudNow();
+  await loadFromCloud();
+  toast('☁️ 已強制同步');
+}
 async function loadFromCloud(silent){
   if(!APPS_SCRIPT_URL) return;
   if(!silent) setSyncState('loading');
   try{
     const res=await fetch(APPS_SCRIPT_URL,{method:'GET',redirect:'follow'});
     const data=await res.json();
-    if(data.rooms&&Object.keys(data.rooms).length){
+    const cloudHasRooms=data.rooms&&Object.keys(data.rooms).length>0;
+    const localHasData=Object.values(rooms).some(r=>r.tenant||r.status==='occupied');
+    if(cloudHasRooms){
       rooms=data.rooms;
       ROOM_LIST.forEach(r=>{
         if(!rooms[r.id]) rooms[r.id]={status:'vacant',tenant:'',phone:'',line:'',moveIn:'',contractEnd:'',people:1,meterCount:1,waterMode:'per_person',waterFixed:0,rent:6000,deposit:0,note:''};
@@ -808,7 +816,23 @@ async function loadFromCloud(silent){
     if(data.config&&data.config.elecRate){cfg=data.config;localStorage.setItem('rm_cfg',JSON.stringify(cfg));}
     setSyncState('saved');
     rerenderCurrent();
+    // 本機有資料但雲端是空的 → 自動上傳一次，避免「假已同步」
+    if(!cloudHasRooms&&localHasData){
+      console.log('[Sync] 雲端是空的，自動把本機資料推上去…');
+      saveToCloudNow();
+    }
   }catch(e){console.error('loadFromCloud error',e);setSyncState('error');}
+}
+// 立即上傳（無 debounce），用於初次連線與手動觸發
+async function saveToCloudNow(){
+  if(!APPS_SCRIPT_URL) return;
+  if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
+  setSyncState('saving');
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg})});
+    const r=await res.json();
+    setSyncState(r.ok?'saved':'error');
+  }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
 }
 function saveToCloud(){
   if(!APPS_SCRIPT_URL) return;
