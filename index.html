@@ -57,6 +57,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;back
 .topbar h2{font-size:16px;font-weight:700;color:var(--text);}
 .topbar h2::before{content:'🏡';margin-right:6px;}
 .topbar-date{font-size:11.5px;color:var(--text2);background:var(--warning-light);padding:3px 12px;border-radius:20px;border:1px solid var(--border);font-weight:600;}
+.sync-badge{font-size:11.5px;padding:3px 12px;border-radius:20px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--text3);background:var(--surface2);border:1px solid var(--border);user-select:none;}
+.sync-badge:hover{transform:scale(1.04);}
+.sync-badge.s-loading,.sync-badge.s-saving{background:var(--warning);color:#fff;border-color:var(--warning);}
+.sync-badge.s-saved{background:var(--success);color:#fff;border-color:var(--success);}
+.sync-badge.s-error{background:var(--danger);color:#fff;border-color:var(--danger);}
 .topbar-actions{display:flex;gap:8px;align-items:center;}
 .content{padding:24px 26px;}
 
@@ -402,6 +407,7 @@ textarea{resize:vertical;min-height:72px;}
       <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
       <h2 id="pageTitle">總覽</h2>
       <span class="topbar-date" id="topbarDate"></span>
+      <span class="sync-badge" id="syncBadge" onclick="loadFromCloud()" title="點擊立即同步">☁️ 未連線</span>
     </div>
     <div class="topbar-actions" id="topbarActions"></div>
   </div>
@@ -769,7 +775,66 @@ const ROOM_LIST=[
 ];
 
 function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
-function sd(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud();}
+
+// ── CLOUD SYNC (Google Sheets via Apps Script) ──
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby2W8o6pKMirEuYbqKB8SOoeL2BB_7HB0n3yLH0xCIFcUS4dJ7wXSZJJZjBRqh-CD9qbQ/exec';
+let syncState='idle', saveTimer=null;
+function setSyncState(s){
+  syncState=s;
+  const el=document.getElementById('syncBadge'); if(!el) return;
+  el.className='sync-badge';
+  const map={idle:{t:'☁️ 未連線',c:''},loading:{t:'⏳ 載入中…',c:'s-loading'},saving:{t:'⏳ 同步中…',c:'s-saving'},saved:{t:'✅ 已同步',c:'s-saved'},error:{t:'⚠️ 同步失敗 (點擊重試)',c:'s-error'}};
+  const m=map[s]||map.idle; el.textContent=m.t; if(m.c) el.classList.add(m.c);
+}
+async function loadFromCloud(silent){
+  if(!APPS_SCRIPT_URL) return;
+  if(!silent) setSyncState('loading');
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{method:'GET',redirect:'follow'});
+    const data=await res.json();
+    if(data.rooms&&Object.keys(data.rooms).length){
+      rooms=data.rooms;
+      ROOM_LIST.forEach(r=>{
+        if(!rooms[r.id]) rooms[r.id]={status:'vacant',tenant:'',phone:'',line:'',moveIn:'',contractEnd:'',people:1,meterCount:1,waterMode:'per_person',waterFixed:0,rent:6000,deposit:0,note:''};
+        if(!rooms[r.id].meterCount) rooms[r.id].meterCount=1;
+        if(!rooms[r.id].waterMode) rooms[r.id].waterMode='per_person';
+        if(rooms[r.id].waterFixed===undefined) rooms[r.id].waterFixed=0;
+      });
+      localStorage.setItem('rm_rooms',JSON.stringify(rooms));
+    }
+    if(data.meters&&Object.keys(data.meters).length){meters=data.meters;localStorage.setItem('rm_meters',JSON.stringify(meters));}
+    if(data.payments&&Object.keys(data.payments).length){payments=data.payments;localStorage.setItem('rm_payments',JSON.stringify(payments));}
+    if(data.config&&data.config.elecRate){cfg=data.config;localStorage.setItem('rm_cfg',JSON.stringify(cfg));}
+    setSyncState('saved');
+    rerenderCurrent();
+  }catch(e){console.error('loadFromCloud error',e);setSyncState('error');}
+}
+function saveToCloud(){
+  if(!APPS_SCRIPT_URL) return;
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    setSyncState('saving');
+    try{
+      const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg})});
+      const r=await res.json();
+      setSyncState(r.ok?'saved':'error');
+    }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
+  },1200);
+}
+function rerenderCurrent(){
+  const cur=document.querySelector('.page.active')?.id?.replace('page-','');
+  updateSidebar();
+  if(cur==='overview') renderOverview();
+  else if(cur==='rooms') renderRoomsTable();
+  else if(cur==='status') renderStatusMap();
+  else if(cur==='meter') renderMeterPage();
+  else if(cur==='billing') renderBillingPage();
+  else if(cur==='payments') renderPaymentsPage();
+  else if(cur==='notice') initNoticePage();
+  else if(cur==='contracts') renderContractsPage();
+  else if(cur==='settings') renderSettingsPage();
+}
 
 let rooms    = ld('rm_rooms',{});
 let meters   = ld('rm_meters',{});
@@ -1614,6 +1679,11 @@ function toast(msg){
 // ── INIT ──
 updateSidebar();
 renderOverview();
+// Cloud sync: load initial data, then poll every 30 seconds for changes from other admin
+loadFromCloud();
+setInterval(()=>loadFromCloud(true),30000);
+// Also reload when tab regains focus
+window.addEventListener('focus',()=>loadFromCloud(true));
 </script>
 </body>
 </html>
