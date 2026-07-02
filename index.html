@@ -873,7 +873,7 @@ const ROOM_LIST=[
   {id:'501',floor:'5F',pos:'後面'},{id:'502',floor:'5F',pos:'後面'},
   {id:'503',floor:'5F',pos:'前面'},{id:'505',floor:'5F',pos:'前面'},{id:'506',floor:'5F',pos:'前面'},
   {id:'601',floor:'6F',pos:'後面'},{id:'602',floor:'6F',pos:'後面'},
-  {id:'603',floor:'6F',pos:'前面'},{id:'605',floor:'6F',pos:'前面'},{id:'606',floor:'6F',pos:'前面'},
+  {id:'603/605',floor:'6F',pos:'前面'},{id:'606',floor:'6F',pos:'前面'},
   {id:'701',floor:'7F',pos:'後面'},{id:'702',floor:'7F',pos:'後面'},
   {id:'703/705',floor:'7F',pos:'前面'},{id:'706',floor:'7F',pos:'前面'},
   {id:'801',floor:'8F',pos:'後面'},
@@ -1012,6 +1012,41 @@ ROOM_LIST.forEach(r=>{
   if(!rooms[r.id].waterMode) rooms[r.id].waterMode='per_person';
   if(rooms[r.id].waterFixed===undefined) rooms[r.id].waterFixed=0;
 });
+
+// ── 一次性合併遷移：舊 603 或 605 有資料 → 搬到 603/605 ──
+(function migrateMergedRooms(){
+  const merged='603/605';
+  const target=rooms[merged];
+  // 只有當合併房間仍是預設空白時才遷移（避免覆蓋已編輯資料）
+  if(target && !target.tenant && target.status!=='occupied'){
+    const src=rooms['603']?.tenant?rooms['603']:(rooms['605']?.tenant?rooms['605']:null);
+    if(src){
+      rooms[merged]={...src};
+      console.log('[Migration] 已將 603/605 舊資料合併');
+    }
+  }
+  // 遷移抄表資料：每月的 603 或 605 讀值搬到 603/605
+  Object.keys(meters).forEach(mo=>{
+    const monthData=meters[mo];
+    if(!monthData[merged] && (monthData['603']||monthData['605'])){
+      monthData[merged]=monthData['603']||monthData['605'];
+    }
+  });
+  // 遷移繳費資料
+  Object.keys(payments).forEach(mo=>{
+    const monthData=payments[mo];
+    if(!monthData[merged] && (monthData['603']||monthData['605'])){
+      monthData[merged]=monthData['603']||monthData['605'];
+    }
+  });
+  // 清掉舊 key（避免資料膨脹）
+  delete rooms['603']; delete rooms['605'];
+  Object.keys(meters).forEach(mo=>{ delete meters[mo]['603']; delete meters[mo]['605']; });
+  Object.keys(payments).forEach(mo=>{ delete payments[mo]['603']; delete payments[mo]['605']; });
+  localStorage.setItem('rm_rooms',JSON.stringify(rooms));
+  localStorage.setItem('rm_meters',JSON.stringify(meters));
+  localStorage.setItem('rm_payments',JSON.stringify(payments));
+})();
 
 function ri(id){return rooms[id]||{status:'vacant',tenant:'',people:1,rent:6000,meterCount:1};}
 const MANAGED_ROOMS=ROOM_LIST.filter(r=>!r.displayOnly);
