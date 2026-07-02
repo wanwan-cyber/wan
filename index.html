@@ -882,17 +882,29 @@ const ROOM_LIST=[
 ];
 
 function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
-function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud();}
+// key mapping: localStorage key → cloud field name
+const CLOUD_KEY={rm_rooms:'rooms',rm_meters:'meters',rm_payments:'payments',rm_cfg:'config',rm_viewings:'viewings'};
+function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud(CLOUD_KEY[k]);}
 
 // ── CLOUD SYNC (Google Sheets via Apps Script) ──
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby2W8o6pKMirEuYbqKB8SOoeL2BB_7HB0n3yLH0xCIFcUS4dJ7wXSZJJZjBRqh-CD9qbQ/exec';
 let syncState='idle', saveTimer=null;
+const SYNC_TIMEOUT_MS=15000; // 15 秒逾時
 function setSyncState(s){
   syncState=s;
   const el=document.getElementById('syncBadge'); if(!el) return;
   el.className='sync-badge';
   const map={idle:{t:'☁️ 未連線',c:''},loading:{t:'⏳ 載入中…',c:'s-loading'},saving:{t:'⏳ 同步中…',c:'s-saving'},saved:{t:'✅ 已同步',c:'s-saved'},error:{t:'⚠️ 同步失敗 (點擊重試)',c:'s-error'}};
   const m=map[s]||map.idle; el.textContent=m.t; if(m.c) el.classList.add(m.c);
+}
+// 帶逾時的 fetch，避免請求 hang 住
+async function fetchWithTimeout(url,opts={},ms=SYNC_TIMEOUT_MS){
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),ms);
+  try{
+    const res=await fetch(url,{...opts,signal:ctl.signal});
+    return res;
+  } finally { clearTimeout(timer); }
 }
 // 手動觸發完整同步：先上傳本機 → 再從雲端拉最新
 async function manualSync(){
@@ -904,7 +916,7 @@ async function loadFromCloud(silent){
   if(!APPS_SCRIPT_URL) return;
   if(!silent) setSyncState('loading');
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{method:'GET',redirect:'follow'});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
     const data=await res.json();
     const cloudHasRooms=data.rooms&&Object.keys(data.rooms).length>0;
     const localHasData=Object.values(rooms).some(r=>r.tenant||r.status==='occupied');
@@ -931,28 +943,43 @@ async function loadFromCloud(silent){
     }
   }catch(e){console.error('loadFromCloud error',e);setSyncState('error');}
 }
-// 立即上傳（無 debounce），用於初次連線與手動觸發
+// 立即上傳全部（初次連線用、手動同步用）
 async function saveToCloudNow(){
   if(!APPS_SCRIPT_URL) return;
   if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
+  dirtyFields.clear();
   setSyncState('saving');
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings})});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings})});
     const r=await res.json();
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
 }
-function saveToCloud(){
+// 只上傳有變動的欄位（局部同步）+ 3秒防彈
+let dirtyFields=new Set();
+const SYNC_DEBOUNCE_MS=3000;
+function saveToCloud(field){
   if(!APPS_SCRIPT_URL) return;
+  if(field) dirtyFields.add(field);
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
+    if(!dirtyFields.size) return;
+    const toSend={};
+    dirtyFields.forEach(f=>{
+      if(f==='rooms') toSend.rooms=rooms;
+      else if(f==='meters') toSend.meters=meters;
+      else if(f==='payments') toSend.payments=payments;
+      else if(f==='config') toSend.cfg=cfg;
+      else if(f==='viewings') toSend.viewings=viewings;
+    });
+    dirtyFields.clear();
     setSyncState('saving');
     try{
-      const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings})});
+      const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(toSend)});
       const r=await res.json();
       setSyncState(r.ok?'saved':'error');
     }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
-  },1200);
+  },SYNC_DEBOUNCE_MS);
 }
 function rerenderCurrent(){
   const cur=document.querySelector('.page.active')?.id?.replace('page-','');
