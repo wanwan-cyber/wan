@@ -385,6 +385,8 @@ textarea{resize:vertical;min-height:72px;}
     <div class="nav-sec">房間</div>
     <div class="nav-item" onclick="showPage('rooms')"><span class="nav-icon">🏠</span>房號管理</div>
     <div class="nav-item" onclick="showPage('status')"><span class="nav-icon">🗺️</span>房間狀態</div>
+    <div class="nav-sec">招租</div>
+    <div class="nav-item" onclick="showPage('viewings')"><span class="nav-icon">👀</span>帶看區 <span class="nav-badge" id="viewingBadge" style="display:none;background:var(--warning)">·</span></div>
     <div class="nav-sec">帳務</div>
     <div class="nav-item" onclick="showPage('meter')"><span class="nav-icon">⚡</span>抄表紀錄</div>
     <div class="nav-item" onclick="showPage('billing')"><span class="nav-icon">💰</span>繳費明細</div>
@@ -606,6 +608,39 @@ textarea{resize:vertical;min-height:72px;}
       </div>
     </div>
 
+    <!-- Viewings -->
+    <div id="page-viewings" class="page">
+      <!-- Stats bar -->
+      <div class="stats-grid" id="viewingStats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>👀 帶看紀錄</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="viewingFilter" onchange="renderViewingsPage()" style="width:auto;padding:6px 10px;font-size:13px">
+              <option value="">全部狀態</option>
+              <option value="pending">📞 待回覆</option>
+              <option value="scheduled">📅 新帶看（預約中）</option>
+              <option value="viewed">✓ 已帶看</option>
+              <option value="deal">🎉 成交入住</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openViewingModal()">＋ 新增帶看</button>
+          </div>
+        </div>
+        <div class="card-body p0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>操作</th><th>狀態</th><th>日期時間</th><th>姓名</th><th>電話/LINE</th>
+                <th>來源</th><th>背景</th><th>興趣房間</th><th>人數</th><th>意願度</th><th>備註</th>
+              </tr></thead>
+              <tbody id="viewingsTableBody"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="viewingsMobileCards"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Settings -->
     <div id="page-settings" class="page">
       <div class="grid-2">
@@ -759,6 +794,78 @@ textarea{resize:vertical;min-height:72px;}
   </div>
 </div>
 
+<!-- Viewing Modal -->
+<div class="modal-overlay" id="viewingModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="viewingModalTitle">新增帶看紀錄</h3>
+      <button class="modal-close" onclick="closeViewingModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-divider">基本資訊</div>
+      <div class="form-row">
+        <div class="form-group"><label>日期時間</label><input id="vwDateTime" type="datetime-local"></div>
+        <div class="form-group"><label>狀態</label>
+          <select id="vwStatus">
+            <option value="pending">📞 待回覆</option>
+            <option value="scheduled">📅 新帶看（預約中）</option>
+            <option value="viewed">✓ 已帶看</option>
+            <option value="deal">🎉 成交入住</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>姓名</label><input id="vwName" placeholder="客人姓名"></div>
+        <div class="form-group"><label>電話 / LINE</label><input id="vwContact" placeholder="電話或 LINE ID"></div>
+      </div>
+      <div class="section-divider">背景資訊</div>
+      <div class="form-row">
+        <div class="form-group"><label>來源</label>
+          <select id="vwSource">
+            <option value="">-- 請選 --</option>
+            <option value="591">591</option>
+            <option value="facebook">臉書</option>
+            <option value="friend">朋友介紹</option>
+            <option value="walk-in">路過詢問</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group"><label>專業背景</label>
+          <select id="vwProfession">
+            <option value="">-- 請選 --</option>
+            <option value="student">🎓 學生</option>
+            <option value="worker">💼 上班族</option>
+            <option value="freelance">🎨 自由業</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-divider">需求</div>
+      <div class="form-row">
+        <div class="form-group"><label>入住人數</label><input id="vwPeople" type="number" min="1" value="1"></div>
+        <div class="form-group"><label>意願度</label>
+          <select id="vwInterest">
+            <option value="high">🔥 高</option>
+            <option value="medium" selected>🌤 中</option>
+            <option value="low">❄️ 低</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>有興趣的房間（可多選）</label>
+        <div id="vwRoomsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-height:150px;overflow-y:auto;padding:6px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);"></div>
+        <div class="form-hint">點擊房號選取／取消</div>
+      </div>
+      <div class="form-group"><label>備註</label><textarea id="vwNote" placeholder="其他說明、需求…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="vwDeleteBtn" onclick="deleteViewing()" style="margin-right:auto;display:none">🗑 刪除</button>
+      <button class="btn btn-secondary" onclick="closeViewingModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveViewing()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── CONSTANTS & DATA ──
 const ROOM_LIST=[
@@ -814,6 +921,7 @@ async function loadFromCloud(silent){
     if(data.meters&&Object.keys(data.meters).length){meters=data.meters;localStorage.setItem('rm_meters',JSON.stringify(meters));}
     if(data.payments&&Object.keys(data.payments).length){payments=data.payments;localStorage.setItem('rm_payments',JSON.stringify(payments));}
     if(data.config&&data.config.elecRate){cfg=data.config;localStorage.setItem('rm_cfg',JSON.stringify(cfg));}
+    if(data.viewings&&Array.isArray(data.viewings)){viewings=data.viewings;localStorage.setItem('rm_viewings',JSON.stringify(viewings));}
     setSyncState('saved');
     rerenderCurrent();
     // 本機有資料但雲端是空的 → 自動上傳一次，避免「假已同步」
@@ -829,7 +937,7 @@ async function saveToCloudNow(){
   if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
   setSyncState('saving');
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg})});
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings})});
     const r=await res.json();
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
@@ -840,7 +948,7 @@ function saveToCloud(){
   saveTimer=setTimeout(async()=>{
     setSyncState('saving');
     try{
-      const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg})});
+      const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings})});
       const r=await res.json();
       setSyncState(r.ok?'saved':'error');
     }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
@@ -857,6 +965,7 @@ function rerenderCurrent(){
   else if(cur==='payments') renderPaymentsPage();
   else if(cur==='notice') initNoticePage();
   else if(cur==='contracts') renderContractsPage();
+  else if(cur==='viewings') renderViewingsPage();
   else if(cur==='settings') renderSettingsPage();
 }
 
@@ -864,6 +973,7 @@ let rooms    = ld('rm_rooms',{});
 let meters   = ld('rm_meters',{});
 let payments = ld('rm_payments',{});
 let cfg      = ld('rm_cfg',{elecRate:6,waterRate:200});
+let viewings = ld('rm_viewings',[]);
 
 // Ensure cfg has values
 cfg.elecRate  = cfg.elecRate  || 6;
@@ -959,10 +1069,11 @@ function updateSidebar(){
   }).length;
   const badge=document.getElementById('contractBadge');
   badge.textContent=expiring; badge.style.display=expiring>0?'inline':'none';
+  updateViewingBadge();
 }
 
 // ── NAV ──
-const pageTitles={overview:'總覽',rooms:'房號管理',status:'房間狀態',meter:'抄表紀錄',billing:'繳費明細',payments:'繳費紀錄',notice:'繳費通知',contracts:'合約到期管理',settings:'系統設定'};
+const pageTitles={overview:'總覽',rooms:'房號管理',status:'房間狀態',viewings:'帶看區',meter:'抄表紀錄',billing:'繳費明細',payments:'繳費紀錄',notice:'繳費通知',contracts:'合約到期管理',settings:'系統設定'};
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -979,6 +1090,7 @@ function showPage(name){
   if(name==='payments')  initPaymentsPage();
   if(name==='notice')    initNoticePage();
   if(name==='contracts') renderContractsPage();
+  if(name==='viewings')  renderViewingsPage();
   if(name==='settings')  renderSettingsPage();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1577,6 +1689,196 @@ function renderContractsPage(){
       </div>
     </div>`;
   }).join('')||'<div class="empty-state"><div class="es-icon">📅</div><p>尚無資料</p></div>';
+}
+
+// ── VIEWINGS ──
+const VW_STATUS = {
+  pending:   {label:'📞 待回覆',    color:'#D69B47', bg:'#FBF1DE'},
+  scheduled: {label:'📅 新帶看',    color:'#4F6849', bg:'#EBF0E5'},
+  viewed:    {label:'✓ 已帶看',     color:'#8C6F4F', bg:'#F5EDDF'},
+  deal:      {label:'🎉 成交入住',  color:'#5A8F65', bg:'#E5F0E7'},
+};
+const VW_INTEREST = {
+  high:   {label:'🔥 高', color:'var(--danger)'},
+  medium: {label:'🌤 中', color:'var(--warning)'},
+  low:    {label:'❄️ 低', color:'var(--text3)'},
+};
+const VW_SOURCE = {'591':'591','facebook':'臉書','friend':'朋友介紹','walk-in':'路過詢問','other':'其他'};
+const VW_PROF = {'student':'🎓 學生','worker':'💼 上班族','freelance':'🎨 自由業','other':'其他'};
+
+function fmtVwDate(s){
+  if(!s) return '—';
+  if(s.includes('T')){
+    const [day,time]=s.split('T');
+    const [yr,mo,da]=day.split('-');
+    return `${yr}/${mo}/${da} <span style="font-size:11px;color:var(--text3)">${time}</span>`;
+  }
+  return s;
+}
+function fmtRoomIds(ids){
+  if(!ids||!ids.length) return '<span style="color:var(--text3)">—</span>';
+  return ids.map(id=>`<span class="badge badge-blue" style="margin:1px">${id}</span>`).join('');
+}
+
+function updateViewingBadge(){
+  const active=viewings.filter(v=>v.status==='pending'||v.status==='scheduled').length;
+  const badge=document.getElementById('viewingBadge');
+  badge.textContent=active; badge.style.display=active>0?'inline':'none';
+}
+
+function renderViewingsPage(){
+  const filter=(document.getElementById('viewingFilter')||{}).value||'';
+  const filtered=filter?viewings.filter(v=>v.status===filter):viewings;
+  // Sort: pending & scheduled first, then by dateTime desc
+  const sorted=[...filtered].sort((a,b)=>{
+    const priA=a.status==='pending'?0:a.status==='scheduled'?1:a.status==='viewed'?2:3;
+    const priB=b.status==='pending'?0:b.status==='scheduled'?1:b.status==='viewed'?2:3;
+    if(priA!==priB) return priA-priB;
+    return (b.dateTime||'').localeCompare(a.dateTime||'');
+  });
+
+  // Stats
+  const cnt={pending:0,scheduled:0,viewed:0,deal:0};
+  viewings.forEach(v=>{ if(cnt[v.status]!==undefined) cnt[v.status]++; });
+  document.getElementById('viewingStats').innerHTML=`
+    <div class="stat-card orange"><div class="stat-top"><div><div class="stat-label">待回覆</div><div class="stat-value">${cnt.pending}</div></div><div class="stat-icon">📞</div></div><div class="stat-sub">需要跟進</div></div>
+    <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">預約中</div><div class="stat-value">${cnt.scheduled}</div></div><div class="stat-icon">📅</div></div><div class="stat-sub">即將帶看</div></div>
+    <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">已帶看</div><div class="stat-value">${cnt.viewed}</div></div><div class="stat-icon">✓</div></div><div class="stat-sub">追蹤中</div></div>
+    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">成交入住</div><div class="stat-value">${cnt.deal}</div></div><div class="stat-icon">🎉</div></div><div class="stat-sub">總成交</div></div>
+  `;
+
+  // Desktop
+  document.getElementById('viewingsTableBody').innerHTML=sorted.length?sorted.map(v=>{
+    const st=VW_STATUS[v.status]||VW_STATUS.pending;
+    const it=VW_INTEREST[v.interest]||VW_INTEREST.medium;
+    return `<tr>
+      <td><button class="btn btn-primary btn-sm" onclick="openViewingModal('${v.id}')">編輯</button></td>
+      <td><span class="badge" style="background:${st.bg};color:${st.color}">${st.label}</span></td>
+      <td style="font-size:12px">${fmtVwDate(v.dateTime)}</td>
+      <td><strong>${v.name||'—'}</strong></td>
+      <td style="font-size:12px;color:var(--primary)">${v.contact||'—'}</td>
+      <td style="font-size:12px">${VW_SOURCE[v.source]||'—'}</td>
+      <td style="font-size:12px">${VW_PROF[v.profession]||'—'}</td>
+      <td>${fmtRoomIds(v.roomIds)}</td>
+      <td style="text-align:center">${v.people||1}</td>
+      <td><span style="color:${it.color};font-weight:600;font-size:12px">${it.label}</span></td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)" title="${v.note||''}">${v.note||'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:30px">尚無帶看紀錄，點右上「＋ 新增帶看」開始</td></tr>';
+
+  // Mobile
+  document.getElementById('viewingsMobileCards').innerHTML=sorted.length?sorted.map(v=>{
+    const st=VW_STATUS[v.status]||VW_STATUS.pending;
+    const it=VW_INTEREST[v.interest]||VW_INTEREST.medium;
+    return `<div class="m-card">
+      <div class="m-card-top">
+        <div>
+          <div class="m-card-room">${v.name||'（未命名）'}</div>
+          <div class="m-card-tenant">
+            <span class="badge" style="background:${st.bg};color:${st.color}">${st.label}</span>
+            <span style="color:${it.color};font-weight:600;font-size:11.5px;margin-left:4px">${it.label}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openViewingModal('${v.id}')">編輯</button>
+      </div>
+      <div class="m-card-grid">
+        <div class="m-card-full"><div class="k">日期時間</div><div class="v">${fmtVwDate(v.dateTime)}</div></div>
+        <div><div class="k">電話 / LINE</div><div class="v" style="color:var(--primary)">${v.contact||'—'}</div></div>
+        <div><div class="k">人數</div><div class="v">${v.people||1} 人</div></div>
+        <div><div class="k">來源</div><div class="v">${VW_SOURCE[v.source]||'—'}</div></div>
+        <div><div class="k">背景</div><div class="v">${VW_PROF[v.profession]||'—'}</div></div>
+        <div class="m-card-full"><div class="k">興趣房間</div><div class="v">${fmtRoomIds(v.roomIds)}</div></div>
+        ${v.note?`<div class="m-card-full"><div class="k">備註</div><div class="v" style="font-size:11.5px">${v.note}</div></div>`:''}
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="es-icon">👀</div><p>尚無帶看紀錄</p></div>';
+  updateViewingBadge();
+}
+
+let editingViewingId=null;
+let selectedRoomIds=[];
+
+function openViewingModal(id){
+  editingViewingId=id||null;
+  const v=id?viewings.find(x=>x.id===id):null;
+  document.getElementById('viewingModalTitle').textContent=id?'編輯帶看紀錄':'新增帶看紀錄';
+  document.getElementById('vwDeleteBtn').style.display=id?'inline-flex':'none';
+  if(v){
+    document.getElementById('vwDateTime').value=v.dateTime||'';
+    document.getElementById('vwStatus').value=v.status||'pending';
+    document.getElementById('vwName').value=v.name||'';
+    document.getElementById('vwContact').value=v.contact||'';
+    document.getElementById('vwSource').value=v.source||'';
+    document.getElementById('vwProfession').value=v.profession||'';
+    document.getElementById('vwPeople').value=v.people||1;
+    document.getElementById('vwInterest').value=v.interest||'medium';
+    document.getElementById('vwNote').value=v.note||'';
+    selectedRoomIds=[...(v.roomIds||[])];
+  } else {
+    const n=new Date(); n.setMinutes(n.getMinutes()-n.getTimezoneOffset());
+    document.getElementById('vwDateTime').value=n.toISOString().slice(0,16);
+    document.getElementById('vwStatus').value='pending';
+    document.getElementById('vwName').value='';
+    document.getElementById('vwContact').value='';
+    document.getElementById('vwSource').value='';
+    document.getElementById('vwProfession').value='';
+    document.getElementById('vwPeople').value=1;
+    document.getElementById('vwInterest').value='medium';
+    document.getElementById('vwNote').value='';
+    selectedRoomIds=[];
+  }
+  renderVwRoomsGrid();
+  document.getElementById('viewingModal').style.display='flex';
+}
+function closeViewingModal(){document.getElementById('viewingModal').style.display='none';}
+function renderVwRoomsGrid(){
+  document.getElementById('vwRoomsGrid').innerHTML=MANAGED_ROOMS.map(r=>{
+    const sel=selectedRoomIds.includes(r.id);
+    return `<div onclick="toggleVwRoom('${r.id}')" style="padding:6px 4px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;border:1.5px solid ${sel?'var(--primary)':'var(--border)'};background:${sel?'var(--primary-light)':'var(--surface)'};color:${sel?'var(--primary-dark)':'var(--text)'};transition:all .1s">${r.id}</div>`;
+  }).join('');
+}
+function toggleVwRoom(id){
+  const i=selectedRoomIds.indexOf(id);
+  if(i>=0) selectedRoomIds.splice(i,1);
+  else selectedRoomIds.push(id);
+  renderVwRoomsGrid();
+}
+function saveViewing(){
+  const now=new Date().toISOString();
+  const record={
+    id:editingViewingId||('v_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+    dateTime:document.getElementById('vwDateTime').value,
+    status:document.getElementById('vwStatus').value,
+    name:document.getElementById('vwName').value.trim(),
+    contact:document.getElementById('vwContact').value.trim(),
+    source:document.getElementById('vwSource').value,
+    profession:document.getElementById('vwProfession').value,
+    people:parseInt(document.getElementById('vwPeople').value)||1,
+    interest:document.getElementById('vwInterest').value,
+    roomIds:[...selectedRoomIds],
+    note:document.getElementById('vwNote').value,
+    updatedAt:now,
+  };
+  if(editingViewingId){
+    const idx=viewings.findIndex(x=>x.id===editingViewingId);
+    if(idx>=0) viewings[idx]=record;
+  } else {
+    record.createdAt=now;
+    viewings.push(record);
+  }
+  sd('rm_viewings',viewings);
+  closeViewingModal();
+  renderViewingsPage();
+  toast(editingViewingId?'✓ 已更新帶看紀錄':'✓ 已新增帶看紀錄');
+}
+function deleteViewing(){
+  if(!editingViewingId) return;
+  if(!confirm('確定刪除這筆帶看紀錄？此動作無法復原。')) return;
+  viewings=viewings.filter(x=>x.id!==editingViewingId);
+  sd('rm_viewings',viewings);
+  closeViewingModal();
+  renderViewingsPage();
+  toast('🗑 已刪除');
 }
 
 // ── NOTICE ──
