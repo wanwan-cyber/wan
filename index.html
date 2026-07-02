@@ -618,7 +618,6 @@ textarea{resize:vertical;min-height:72px;}
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <select id="viewingFilter" onchange="renderViewingsPage()" style="width:auto;padding:6px 10px;font-size:13px">
               <option value="">全部狀態</option>
-              <option value="pending">📞 待回覆</option>
               <option value="scheduled">📅 新帶看（預約中）</option>
               <option value="viewed">✓ 已帶看</option>
               <option value="deal">🎉 成交入住</option>
@@ -807,7 +806,6 @@ textarea{resize:vertical;min-height:72px;}
         <div class="form-group"><label>日期時間</label><input id="vwDateTime" type="datetime-local"></div>
         <div class="form-group"><label>狀態</label>
           <select id="vwStatus">
-            <option value="pending">📞 待回覆</option>
             <option value="scheduled">📅 新帶看（預約中）</option>
             <option value="viewed">✓ 已帶看</option>
             <option value="deal">🎉 成交入住</option>
@@ -853,8 +851,8 @@ textarea{resize:vertical;min-height:72px;}
       </div>
       <div class="form-group">
         <label>有興趣的房間（可多選）</label>
-        <div id="vwRoomsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:280px;overflow-y:auto;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);"></div>
-        <div class="form-hint">點擊房號選取／取消 · <span style="color:var(--success)">綠字=空房</span> · <span style="color:var(--warning)">橘底=已租</span></div>
+        <div id="vwRoomsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:400px;overflow-y:auto;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);"></div>
+        <div class="form-hint">點擊房號選取／取消 · <span style="color:var(--success)">綠字=空房</span> · <span style="color:var(--warning)">橘底=已租</span> · 📝=房間備註</div>
       </div>
       <div class="form-group"><label>備註</label><textarea id="vwNote" placeholder="其他說明、需求…"></textarea></div>
     </div>
@@ -1720,7 +1718,6 @@ function renderContractsPage(){
 
 // ── VIEWINGS ──
 const VW_STATUS = {
-  pending:   {label:'📞 待回覆',    color:'#D69B47', bg:'#FBF1DE'},
   scheduled: {label:'📅 新帶看',    color:'#4F6849', bg:'#EBF0E5'},
   viewed:    {label:'✓ 已帶看',     color:'#8C6F4F', bg:'#F5EDDF'},
   deal:      {label:'🎉 成交入住',  color:'#5A8F65', bg:'#E5F0E7'},
@@ -1753,7 +1750,7 @@ function fmtRoomIds(ids){
 }
 
 function updateViewingBadge(){
-  const active=viewings.filter(v=>v.status==='pending'||v.status==='scheduled').length;
+  const active=viewings.filter(v=>v.status==='scheduled').length;
   const badge=document.getElementById('viewingBadge');
   badge.textContent=active; badge.style.display=active>0?'inline':'none';
 }
@@ -1761,27 +1758,29 @@ function updateViewingBadge(){
 function renderViewingsPage(){
   const filter=(document.getElementById('viewingFilter')||{}).value||'';
   const filtered=filter?viewings.filter(v=>v.status===filter):viewings;
-  // Sort: pending & scheduled first, then by dateTime desc
+  // Sort: scheduled first, then viewed, deal; each by dateTime desc
   const sorted=[...filtered].sort((a,b)=>{
-    const priA=a.status==='pending'?0:a.status==='scheduled'?1:a.status==='viewed'?2:3;
-    const priB=b.status==='pending'?0:b.status==='scheduled'?1:b.status==='viewed'?2:3;
+    const priA=a.status==='scheduled'?0:a.status==='viewed'?1:2;
+    const priB=b.status==='scheduled'?0:b.status==='viewed'?1:2;
     if(priA!==priB) return priA-priB;
     return (b.dateTime||'').localeCompare(a.dateTime||'');
   });
 
-  // Stats
-  const cnt={pending:0,scheduled:0,viewed:0,deal:0};
+  // Stats (3 cards now)
+  const cnt={scheduled:0,viewed:0,deal:0};
   viewings.forEach(v=>{ if(cnt[v.status]!==undefined) cnt[v.status]++; });
+  const total=viewings.length;
+  document.getElementById('viewingStats').style.gridTemplateColumns='repeat(4,1fr)';
   document.getElementById('viewingStats').innerHTML=`
-    <div class="stat-card orange"><div class="stat-top"><div><div class="stat-label">待回覆</div><div class="stat-value">${cnt.pending}</div></div><div class="stat-icon">📞</div></div><div class="stat-sub">需要跟進</div></div>
     <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">預約中</div><div class="stat-value">${cnt.scheduled}</div></div><div class="stat-icon">📅</div></div><div class="stat-sub">即將帶看</div></div>
-    <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">已帶看</div><div class="stat-value">${cnt.viewed}</div></div><div class="stat-icon">✓</div></div><div class="stat-sub">追蹤中</div></div>
-    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">成交入住</div><div class="stat-value">${cnt.deal}</div></div><div class="stat-icon">🎉</div></div><div class="stat-sub">總成交</div></div>
+    <div class="stat-card orange"><div class="stat-top"><div><div class="stat-label">已帶看</div><div class="stat-value">${cnt.viewed}</div></div><div class="stat-icon">✓</div></div><div class="stat-sub">追蹤中</div></div>
+    <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">成交入住</div><div class="stat-value">${cnt.deal}</div></div><div class="stat-icon">🎉</div></div><div class="stat-sub">總成交</div></div>
+    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">總筆數</div><div class="stat-value">${total}</div></div><div class="stat-icon">👥</div></div><div class="stat-sub">歷史紀錄</div></div>
   `;
 
   // Desktop
   document.getElementById('viewingsTableBody').innerHTML=sorted.length?sorted.map(v=>{
-    const st=VW_STATUS[v.status]||VW_STATUS.pending;
+    const st=VW_STATUS[v.status]||VW_STATUS.scheduled;
     const it=VW_INTEREST[v.interest]||VW_INTEREST.medium;
     return `<tr>
       <td><button class="btn btn-primary btn-sm" onclick="openViewingModal('${v.id}')">編輯</button></td>
@@ -1800,7 +1799,7 @@ function renderViewingsPage(){
 
   // Mobile
   document.getElementById('viewingsMobileCards').innerHTML=sorted.length?sorted.map(v=>{
-    const st=VW_STATUS[v.status]||VW_STATUS.pending;
+    const st=VW_STATUS[v.status]||VW_STATUS.scheduled;
     const it=VW_INTEREST[v.interest]||VW_INTEREST.medium;
     return `<div class="m-card">
       <div class="m-card-top">
@@ -1837,7 +1836,7 @@ function openViewingModal(id){
   document.getElementById('vwDeleteBtn').style.display=id?'inline-flex':'none';
   if(v){
     document.getElementById('vwDateTime').value=v.dateTime||'';
-    document.getElementById('vwStatus').value=v.status||'pending';
+    document.getElementById('vwStatus').value=v.status||'scheduled';
     document.getElementById('vwName').value=v.name||'';
     document.getElementById('vwContact').value=v.contact||'';
     document.getElementById('vwSource').value=v.source||'';
@@ -1849,7 +1848,7 @@ function openViewingModal(id){
   } else {
     const n=new Date(); n.setMinutes(n.getMinutes()-n.getTimezoneOffset());
     document.getElementById('vwDateTime').value=n.toISOString().slice(0,16);
-    document.getElementById('vwStatus').value='pending';
+    document.getElementById('vwStatus').value='scheduled';
     document.getElementById('vwName').value='';
     document.getElementById('vwContact').value='';
     document.getElementById('vwSource').value='';
@@ -1869,15 +1868,16 @@ function renderVwRoomsGrid(){
     const sel=selectedRoomIds.includes(r.id);
     const occ=info.status==='occupied';
     const rent=info.rent?'$'+Number(info.rent).toLocaleString():'—';
-    // Border/bg based on selected + status
+    const note=info.note||'';
     const borderCol=sel?'var(--primary)':(occ?'var(--warning)':'var(--border)');
     const bgCol=sel?'var(--primary-light)':(occ?'var(--warning-light)':'var(--surface)');
     const textCol=sel?'var(--primary-dark)':'var(--text)';
-    return `<div onclick="toggleVwRoom('${r.id}')" style="padding:8px 4px;text-align:center;border-radius:7px;cursor:pointer;border:1.5px solid ${borderCol};background:${bgCol};color:${textCol};transition:all .1s;position:relative">
+    return `<div onclick="toggleVwRoom('${r.id}')" title="${note}" style="padding:8px 5px;text-align:center;border-radius:7px;cursor:pointer;border:1.5px solid ${borderCol};background:${bgCol};color:${textCol};transition:all .1s;position:relative;min-height:70px;display:flex;flex-direction:column;justify-content:center">
       <div style="font-size:13px;font-weight:700;line-height:1.1">${r.id}</div>
       <div style="font-size:10.5px;color:${sel?'var(--primary-dark)':'var(--text2)'};font-weight:600;margin-top:2px">${rent}</div>
       <div style="font-size:9.5px;color:${occ?'var(--warning)':'var(--success)'};margin-top:1px;font-weight:600">${occ?'已租':'空房'}</div>
-      ${sel?'<div style="position:absolute;top:-6px;right:-6px;background:var(--primary);color:#fff;width:16px;height:16px;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700">✓</div>':''}
+      ${note?`<div style="font-size:9.5px;color:var(--text2);margin-top:3px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" title="${note}">📝 ${note}</div>`:''}
+      ${sel?'<div style="position:absolute;top:-6px;right:-6px;background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700">✓</div>':''}
     </div>`;
   }).join('');
 }
