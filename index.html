@@ -621,6 +621,7 @@ textarea{resize:vertical;min-height:72px;}
               <option value="scheduled">📅 新帶看（預約中）</option>
               <option value="viewed">✓ 已帶看</option>
               <option value="deal">🎉 成交入住</option>
+              <option value="noshow">🕊️ 放鴿子</option>
             </select>
             <button class="btn btn-primary btn-sm" onclick="openViewingModal()">＋ 新增帶看</button>
           </div>
@@ -809,6 +810,7 @@ textarea{resize:vertical;min-height:72px;}
             <option value="scheduled">📅 新帶看（預約中）</option>
             <option value="viewed">✓ 已帶看</option>
             <option value="deal">🎉 成交入住</option>
+            <option value="noshow">🕊️ 放鴿子</option>
           </select>
         </div>
       </div>
@@ -1756,6 +1758,7 @@ const VW_STATUS = {
   scheduled: {label:'📅 新帶看',    color:'#4F6849', bg:'#EBF0E5'},
   viewed:    {label:'✓ 已帶看',     color:'#8C6F4F', bg:'#F5EDDF'},
   deal:      {label:'🎉 成交入住',  color:'#5A8F65', bg:'#E5F0E7'},
+  noshow:    {label:'🕊️ 放鴿子',   color:'#8C6F4F', bg:'#EEE9DE'},
 };
 const VW_INTEREST = {
   high:   {label:'🔥 高', color:'var(--danger)'},
@@ -1793,24 +1796,24 @@ function updateViewingBadge(){
 function renderViewingsPage(){
   const filter=(document.getElementById('viewingFilter')||{}).value||'';
   const filtered=filter?viewings.filter(v=>v.status===filter):viewings;
-  // Sort: scheduled first, then viewed, deal; each by dateTime desc
+  // Sort: scheduled → viewed → deal → noshow, each by dateTime desc
   const sorted=[...filtered].sort((a,b)=>{
-    const priA=a.status==='scheduled'?0:a.status==='viewed'?1:2;
-    const priB=b.status==='scheduled'?0:b.status==='viewed'?1:2;
+    const pri={scheduled:0,viewed:1,deal:2,noshow:3};
+    const priA=pri[a.status]??9, priB=pri[b.status]??9;
     if(priA!==priB) return priA-priB;
     return (b.dateTime||'').localeCompare(a.dateTime||'');
   });
 
-  // Stats (3 cards now)
-  const cnt={scheduled:0,viewed:0,deal:0};
+  // Stats (5-card layout on desktop)
+  const cnt={scheduled:0,viewed:0,deal:0,noshow:0};
   viewings.forEach(v=>{ if(cnt[v.status]!==undefined) cnt[v.status]++; });
-  const total=viewings.length;
-  document.getElementById('viewingStats').style.gridTemplateColumns='repeat(4,1fr)';
+  document.getElementById('viewingStats').style.gridTemplateColumns='repeat(5,1fr)';
   document.getElementById('viewingStats').innerHTML=`
     <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">預約中</div><div class="stat-value">${cnt.scheduled}</div></div><div class="stat-icon">📅</div></div><div class="stat-sub">即將帶看</div></div>
     <div class="stat-card orange"><div class="stat-top"><div><div class="stat-label">已帶看</div><div class="stat-value">${cnt.viewed}</div></div><div class="stat-icon">✓</div></div><div class="stat-sub">追蹤中</div></div>
     <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">成交入住</div><div class="stat-value">${cnt.deal}</div></div><div class="stat-icon">🎉</div></div><div class="stat-sub">總成交</div></div>
-    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">總筆數</div><div class="stat-value">${total}</div></div><div class="stat-icon">👥</div></div><div class="stat-sub">歷史紀錄</div></div>
+    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">放鴿子</div><div class="stat-value">${cnt.noshow}</div></div><div class="stat-icon">🕊️</div></div><div class="stat-sub">未到場</div></div>
+    <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">總筆數</div><div class="stat-value">${viewings.length}</div></div><div class="stat-icon">👥</div></div><div class="stat-sub">歷史紀錄</div></div>
   `;
 
   // Desktop
