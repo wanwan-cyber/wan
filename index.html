@@ -141,6 +141,8 @@ tbody tr:hover td{background:#EEF4FF!important;}
 .room-card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(93,70,49,.18);}
 .room-card.occupied{border-color:#D69B47;background:linear-gradient(180deg,#FFFBF0 0%,#FFF6DD 100%);}
 .room-card.occupied::before{content:'';position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#FFE9A8;border:1.5px solid #D69B47;box-shadow:0 0 6px #FFD971,inset 0 0 2px #FFC857;}
+.room-card.cleaning{border-color:#B07F2C;background:repeating-linear-gradient(45deg,#FBF1DE,#FBF1DE 8px,#F5E5C6 8px,#F5E5C6 16px);}
+.room-card.cleaning::before{content:'🧹';position:absolute;top:2px;right:4px;font-size:12px;}
 .room-card.vacant{opacity:.55;}
 .room-card.expiring{border-color:#D69B47;background:#FBF1DE;}
 .room-card.expired{border-color:var(--danger);background:var(--danger-light);}
@@ -700,7 +702,11 @@ textarea{resize:vertical;min-height:72px;}
       <div class="form-row">
         <div class="form-group"><label>房號</label><input id="rmNumber" readonly></div>
         <div class="form-group"><label>狀態</label>
-          <select id="rmStatus"><option value="occupied">已出租</option><option value="vacant">空置</option></select>
+          <select id="rmStatus">
+            <option value="occupied">✅ 已出租</option>
+            <option value="cleaning">🧹 待清潔</option>
+            <option value="vacant">🔑 空置</option>
+          </select>
         </div>
       </div>
       <div class="section-divider">租客資訊</div>
@@ -893,7 +899,7 @@ const ROOM_LIST=[
   {id:'201',floor:'2F',pos:'後面'},{id:'202',floor:'2F',pos:'前面'},
   {id:'301',floor:'3F',pos:'後面'},{id:'302',floor:'3F',pos:'前面'},
   {id:'501',floor:'5F',pos:'後面'},{id:'502',floor:'5F',pos:'後面'},
-  {id:'503',floor:'5F',pos:'前面'},{id:'505',floor:'5F',pos:'前面'},{id:'506',floor:'5F',pos:'前面'},
+  {id:'503/505',floor:'5F',pos:'前面'},{id:'506',floor:'5F',pos:'前面'},
   {id:'601',floor:'6F',pos:'後面'},{id:'602',floor:'6F',pos:'後面'},
   {id:'603/605',floor:'6F',pos:'前面'},{id:'606',floor:'6F',pos:'前面'},
   {id:'701',floor:'7F',pos:'後面'},{id:'702',floor:'7F',pos:'後面'},
@@ -1035,42 +1041,38 @@ ROOM_LIST.forEach(r=>{
   if(rooms[r.id].waterFixed===undefined) rooms[r.id].waterFixed=0;
 });
 
-// ── 一次性合併遷移：舊 603 或 605 有資料 → 搬到 603/605 ──
+// ── 一次性合併遷移：舊 603/605、503/505 有資料 → 搬到合併房間 ──
 (function migrateMergedRooms(){
-  const merged='603/605';
-  const target=rooms[merged];
-  // 只有當合併房間仍是預設空白時才遷移（避免覆蓋已編輯資料）
-  if(target && !target.tenant && target.status!=='occupied'){
-    const src=rooms['603']?.tenant?rooms['603']:(rooms['605']?.tenant?rooms['605']:null);
-    if(src){
-      rooms[merged]={...src};
-      console.log('[Migration] 已將 603/605 舊資料合併');
+  [['603/605','603','605'],['503/505','503','505']].forEach(([merged,a,b])=>{
+    const target=rooms[merged];
+    if(target && !target.tenant && target.status!=='occupied'){
+      const src=rooms[a]?.tenant?rooms[a]:(rooms[b]?.tenant?rooms[b]:null);
+      if(src){ rooms[merged]={...src}; console.log('[Migration] '+merged+' 舊資料已合併'); }
     }
-  }
-  // 遷移抄表資料：每月的 603 或 605 讀值搬到 603/605
-  Object.keys(meters).forEach(mo=>{
-    const monthData=meters[mo];
-    if(!monthData[merged] && (monthData['603']||monthData['605'])){
-      monthData[merged]=monthData['603']||monthData['605'];
-    }
+    Object.keys(meters).forEach(mo=>{
+      const md=meters[mo];
+      if(!md[merged] && (md[a]||md[b])) md[merged]=md[a]||md[b];
+    });
+    Object.keys(payments).forEach(mo=>{
+      const md=payments[mo];
+      if(!md[merged] && (md[a]||md[b])) md[merged]=md[a]||md[b];
+    });
+    delete rooms[a]; delete rooms[b];
+    Object.keys(meters).forEach(mo=>{ delete meters[mo][a]; delete meters[mo][b]; });
+    Object.keys(payments).forEach(mo=>{ delete payments[mo][a]; delete payments[mo][b]; });
   });
-  // 遷移繳費資料
-  Object.keys(payments).forEach(mo=>{
-    const monthData=payments[mo];
-    if(!monthData[merged] && (monthData['603']||monthData['605'])){
-      monthData[merged]=monthData['603']||monthData['605'];
-    }
-  });
-  // 清掉舊 key（避免資料膨脹）
-  delete rooms['603']; delete rooms['605'];
-  Object.keys(meters).forEach(mo=>{ delete meters[mo]['603']; delete meters[mo]['605']; });
-  Object.keys(payments).forEach(mo=>{ delete payments[mo]['603']; delete payments[mo]['605']; });
   localStorage.setItem('rm_rooms',JSON.stringify(rooms));
   localStorage.setItem('rm_meters',JSON.stringify(meters));
   localStorage.setItem('rm_payments',JSON.stringify(payments));
 })();
 
 function ri(id){return rooms[id]||{status:'vacant',tenant:'',people:1,rent:6000,meterCount:1};}
+function roomStatusBadge(status,extraStyle){
+  const s=extraStyle||'';
+  if(status==='occupied') return `<span class="badge badge-green" style="${s}">✅ 已出租</span>`;
+  if(status==='cleaning') return `<span class="badge" style="background:#FBF1DE;color:#B07F2C;${s}">🧹 待清潔</span>`;
+  return `<span class="badge badge-gray" style="${s}">🔑 空置</span>`;
+}
 const MANAGED_ROOMS=ROOM_LIST.filter(r=>!r.displayOnly);
 function ym(y,m){return `${y}${String(m).padStart(2,'0')}`;}
 function prevYM(y,m){return m===1?ym(y-1,12):ym(y,m-1);}
@@ -1198,6 +1200,8 @@ function fillYM(yId,mId,y,m,cb){
 function renderOverview(){
   const total=MANAGED_ROOMS.length;
   const occ=MANAGED_ROOMS.filter(r=>ri(r.id).status==='occupied');
+  const cleaning=MANAGED_ROOMS.filter(r=>ri(r.id).status==='cleaning');
+  const vacant=total-occ.length-cleaning.length;
   const key=ym(curY,curM);
   const pays=payments[key]||{};
   const paid=occ.filter(r=>(pays[r.id]||{}).status==='paid').length;
@@ -1208,12 +1212,13 @@ function renderOverview(){
   let alertHtml='';
   if(expired.length) alertHtml+=`<div class="alert alert-danger"><div class="alert-icon">🚨</div><div class="alert-content"><strong>合約已過期（${expired.length}間）</strong>${expired.map(r=>`${r.id} ${ri(r.id).tenant||''}`).join('、')}</div></div>`;
   if(expiring.length) alertHtml+=`<div class="alert alert-warning"><div class="alert-icon">⚠️</div><div class="alert-content"><strong>即將到期（${expiring.length}間，30天內）</strong>${expiring.map(r=>{const d=daysUntil(ri(r.id).contractEnd);return `${r.id} ${ri(r.id).tenant||''}（剩${d}天）`;}).join('、')}</div></div>`;
+  if(cleaning.length) alertHtml+=`<div class="alert" style="background:#FBF1DE;border:1px solid #E5D8C2;color:#8C6F4F"><div class="alert-icon">🧹</div><div class="alert-content"><strong>待清潔房間（${cleaning.length}間）</strong>${cleaning.map(r=>r.id).join('、')}</div></div>`;
   document.getElementById('contractAlerts').innerHTML=alertHtml;
 
   document.getElementById('statsGrid').innerHTML=`
     <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">總房間數</div><div class="stat-value">${total}</div></div><div class="stat-icon">🏢</div></div><div class="stat-sub">套房</div></div>
     <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">已出租</div><div class="stat-value">${occ.length}</div></div><div class="stat-icon">✅</div></div><div class="stat-sub">入住率 ${Math.round(occ.length/total*100)}%</div><div class="prog-wrap"><div class="prog-fill" style="width:${Math.round(occ.length/total*100)}%;background:var(--success)"></div></div></div>
-    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">空置</div><div class="stat-value">${total-occ.length}</div></div><div class="stat-icon">🔑</div></div><div class="stat-sub">間</div></div>
+    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">空置 / 待清潔</div><div class="stat-value">${vacant}<span style="font-size:14px;color:var(--warning);font-weight:600"> +${cleaning.length}🧹</span></div></div><div class="stat-icon">🔑</div></div><div class="stat-sub">可招租 ${vacant} 間</div></div>
     <div class="stat-card orange"><div class="stat-top"><div><div class="stat-label">本月未繳</div><div class="stat-value">${unpaid}</div></div><div class="stat-icon">⏰</div></div><div class="stat-sub">已繳 ${paid} 間</div><div class="prog-wrap"><div class="prog-fill" style="width:${occ.length?Math.round(paid/occ.length*100):0}%;background:var(--success)"></div></div></div>
   `;
   document.getElementById('ovPayMonth').textContent=`${curY}年${curM}月`;
@@ -1342,7 +1347,7 @@ function renderRoomsTable(){
       <td><button class="btn btn-primary btn-sm" onclick="openRoomModal('${r.id}')">編輯</button></td>
       <td><strong>${r.id}</strong></td>
       <td style="font-size:12px;color:var(--text2)">${r.floor} ${r.pos}</td>
-      <td>${occ?'<span class="badge badge-green">已出租</span>':'<span class="badge badge-gray">空置</span>'}</td>
+      <td>${roomStatusBadge(info.status)}</td>
       <td>${info.tenant||'<span style="color:var(--text3)">—</span>'}</td>
       <td style="font-size:12px">${info.phone||'—'}</td>
       <td style="font-size:12px;color:var(--primary)">${info.line||'—'}</td>
@@ -1362,7 +1367,7 @@ function renderRoomsTable(){
       <div class="m-card-top">
         <div>
           <div class="m-card-room">${r.id} <span style="font-size:11px;color:var(--text3);font-weight:500">${r.floor} ${r.pos}</span></div>
-          <div class="m-card-tenant">${info.tenant||'—'} ${occ?'<span class="badge badge-green" style="margin-left:4px">已出租</span>':'<span class="badge badge-gray" style="margin-left:4px">空置</span>'}</div>
+          <div class="m-card-tenant">${info.tenant||'—'} ${roomStatusBadge(info.status,'margin-left:4px')}</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openRoomModal('${r.id}')">編輯</button>
       </div>
@@ -1385,10 +1390,11 @@ function renderStatusMap(){
   document.getElementById('statusMap').innerHTML=floors.map(f=>{
     const rs=MANAGED_ROOMS.filter(r=>r.floor===f);
     return `<div class="floor-section"><div class="floor-label">${f}</div><div class="rooms-row">${rs.map(r=>{
-      const info=ri(r.id),occ=info.status==='occupied';
+      const info=ri(r.id),occ=info.status==='occupied',cln=info.status==='cleaning';
       const d=daysUntil(info.contractEnd);
       let cls='vacant',txt='空置';
-      if(occ){
+      if(cln){cls='cleaning';txt='🧹 待清潔';}
+      else if(occ){
         if(d!==null&&d<0){cls='expired';txt='合約過期';}
         else if(d!==null&&d<=30){cls='expiring';txt=`${d}天後到期`;}
         else{cls='occupied';txt='已出租';}
@@ -1935,15 +1941,18 @@ function renderVwRoomsGrid(){
     const info=ri(r.id);
     const sel=selectedRoomIds.includes(r.id);
     const occ=info.status==='occupied';
+    const cln=info.status==='cleaning';
     const rent=info.rent?'$'+Number(info.rent).toLocaleString():'—';
     const note=info.note||'';
-    const borderCol=sel?'var(--primary)':(occ?'var(--warning)':'var(--border)');
-    const bgCol=sel?'var(--primary-light)':(occ?'var(--warning-light)':'var(--surface)');
+    const borderCol=sel?'var(--primary)':(occ?'var(--warning)':cln?'#B07F2C':'var(--border)');
+    const bgCol=sel?'var(--primary-light)':(occ?'var(--warning-light)':cln?'#FBF1DE':'var(--surface)');
     const textCol=sel?'var(--primary-dark)':'var(--text)';
+    const statusTxt=occ?'已租':cln?'🧹 待清潔':'空房';
+    const statusCol=occ?'var(--warning)':cln?'#B07F2C':'var(--success)';
     return `<div onclick="toggleVwRoom('${r.id}')" title="${note}" style="padding:8px 5px;text-align:center;border-radius:7px;cursor:pointer;border:1.5px solid ${borderCol};background:${bgCol};color:${textCol};transition:all .1s;position:relative;min-height:70px;display:flex;flex-direction:column;justify-content:center">
       <div style="font-size:13px;font-weight:700;line-height:1.1">${r.id}</div>
       <div style="font-size:10.5px;color:${sel?'var(--primary-dark)':'var(--text2)'};font-weight:600;margin-top:2px">${rent}</div>
-      <div style="font-size:9.5px;color:${occ?'var(--warning)':'var(--success)'};margin-top:1px;font-weight:600">${occ?'已租':'空房'}</div>
+      <div style="font-size:9.5px;color:${statusCol};margin-top:1px;font-weight:600">${statusTxt}</div>
       ${note?`<div style="font-size:9.5px;color:var(--text2);margin-top:3px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" title="${note}">📝 ${note}</div>`:''}
       ${sel?'<div style="position:absolute;top:-6px;right:-6px;background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700">✓</div>':''}
     </div>`;
