@@ -1295,9 +1295,11 @@ function renderBuilding(){
     rs.forEach((r,i)=>{
       const info=ri(r.id);
       const occ=info.status==='occupied';
+      const cln=info.status==='cleaning';
       const d=daysUntil(info.contractEnd);
       let fill='#E8DECC', stroke='#A89A7E';
-      if(occ){
+      if(cln){fill='#D9EFE8';stroke='#7A9B92';}
+      else if(occ){
         if(d!==null&&d<0){fill='#F4B5B3';stroke='#B85450';}
         else if(d!==null&&d<=30){fill='#FCD96A';stroke='#C28B3C';}
         else{fill='#FFE9A8';stroke='#C9A23E';}
@@ -1307,8 +1309,19 @@ function renderBuilding(){
       svg+=`<g style="cursor:pointer" onclick="openRoomModal('${r.id}')">
         <rect x="${wx}" y="${wy}" width="${winW}" height="${winH}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" rx="1"/>
         <line x1="${wx+winW/2}" y1="${wy}" x2="${wx+winW/2}" y2="${wy+winH}" stroke="${stroke}" stroke-width=".8"/>
-        <line x1="${wx}" y1="${wy+winH/2}" x2="${wx+winW}" y2="${wy+winH/2}" stroke="${stroke}" stroke-width=".8"/>
-        <title>${r.id}${occ?' · '+(info.tenant||'已出租'):' · 空置'}</title>
+        <line x1="${wx}" y1="${wy+winH/2}" x2="${wx+winW}" y2="${wy+winH/2}" stroke="${stroke}" stroke-width=".8"/>`;
+      if(cln){
+        // 小掃把圖示 + 泡泡星光
+        svg+=`<g transform="translate(${wx+winW/2-4},${wy+winH/2-5})">
+          <rect x="3" y="-3" width=".9" height="7" fill="#8C6F4F" transform="rotate(20 3 0)"/>
+          <path d="M 1 5 L 6 5 L 7 8 L 0 8 Z" fill="#D69B47" stroke="#8C6F4F" stroke-width=".3"/>
+          <line x1="1.5" y1="5.5" x2="1.7" y2="7.5" stroke="#8C6F4F" stroke-width=".25"/>
+          <line x1="3" y1="5.5" x2="3" y2="7.7" stroke="#8C6F4F" stroke-width=".25"/>
+          <line x1="4.5" y1="5.5" x2="4.7" y2="7.5" stroke="#8C6F4F" stroke-width=".25"/>
+        </g>
+        <text x="${wx+winW-4}" y="${wy+4}" font-size="4.5" fill="#4F6849">✨</text>`;
+      }
+      svg+=`<title>${r.id}${cln?' · 🧹 待清潔':(occ?' · '+(info.tenant||'已出租'):' · 空置')}</title>
       </g>`;
     });
   });
@@ -1346,6 +1359,7 @@ function renderBuilding(){
     <span><span style="display:inline-block;width:10px;height:10px;background:#FFE9A8;border:1px solid #C9A23E;vertical-align:middle;margin-right:3px"></span>已出租</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#FCD96A;border:1px solid #C28B3C;vertical-align:middle;margin-right:3px"></span>即將到期</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#F4B5B3;border:1px solid #B85450;vertical-align:middle;margin-right:3px"></span>已過期</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:#D9EFE8;border:1px solid #7A9B92;vertical-align:middle;margin-right:3px"></span>🧹 待清潔</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#E8DECC;border:1px solid #A89A7E;vertical-align:middle;margin-right:3px"></span>空置</span>
   </div>`;
   document.getElementById('buildingViz').innerHTML=svg;
