@@ -199,6 +199,14 @@ textarea{resize:vertical;min-height:72px;}
 
 /* Alert banners */
 .alert{border-radius:10px;padding:11px 15px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:13px;}
+/* Compact cleaning identifier chip */
+.cleaning-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 10px;background:linear-gradient(90deg,#FBF1DE 0%,#F5E5C6 100%);border:1px solid #E5D8C2;border-radius:99px;font-size:12.5px;color:#8C6F4F;cursor:pointer;margin-bottom:14px;transition:all .15s;box-shadow:0 1px 2px rgba(93,70,49,.06);}
+.cleaning-chip:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(93,70,49,.12);}
+.cleaning-chip .cc-icon{font-size:14px;}
+.cleaning-chip .cc-label{font-weight:700;}
+.cleaning-chip .cc-count{background:#B07F2C;color:#fff;font-weight:700;padding:1px 8px;border-radius:99px;font-size:11px;}
+.cleaning-chip .cc-rooms{color:var(--text2);font-size:11.5px;padding-left:2px;border-left:1px solid #D6C7A9;padding-left:8px;margin-left:2px;}
+.cleaning-chip .cc-arrow{color:var(--text3);font-size:11px;margin-left:2px;}
 .alert-warning{background:var(--warning-light);border:1px solid #FDE68A;color:#92400E;}
 .alert-danger{background:var(--danger-light);border:1px solid #FECACA;color:#991B1B;}
 .alert-icon{font-size:17px;flex-shrink:0;}
@@ -420,6 +428,7 @@ textarea{resize:vertical;min-height:72px;}
     <!-- Overview -->
     <div id="page-overview" class="page active">
       <div id="contractAlerts"></div>
+      <div id="cleaningChipHolder"></div>
       <div class="stats-grid" id="statsGrid"></div>
       <div class="grid-2" style="margin-bottom:18px">
         <div class="card">
@@ -1212,8 +1221,17 @@ function renderOverview(){
   let alertHtml='';
   if(expired.length) alertHtml+=`<div class="alert alert-danger"><div class="alert-icon">🚨</div><div class="alert-content"><strong>合約已過期（${expired.length}間）</strong>${expired.map(r=>`${r.id} ${ri(r.id).tenant||''}`).join('、')}</div></div>`;
   if(expiring.length) alertHtml+=`<div class="alert alert-warning"><div class="alert-icon">⚠️</div><div class="alert-content"><strong>即將到期（${expiring.length}間，30天內）</strong>${expiring.map(r=>{const d=daysUntil(ri(r.id).contractEnd);return `${r.id} ${ri(r.id).tenant||''}（剩${d}天）`;}).join('、')}</div></div>`;
-  if(cleaning.length) alertHtml+=`<div class="alert" style="background:#FBF1DE;border:1px solid #E5D8C2;color:#8C6F4F"><div class="alert-icon">🧹</div><div class="alert-content"><strong>待清潔房間（${cleaning.length}間）</strong>${cleaning.map(r=>r.id).join('、')}</div></div>`;
   document.getElementById('contractAlerts').innerHTML=alertHtml;
+
+  // Small cleaning identifier chip
+  const cleaningChip=cleaning.length?`<div class="cleaning-chip" onclick="showPage('status')">
+    <span class="cc-icon">🧹</span>
+    <span class="cc-label">待清潔</span>
+    <span class="cc-count">${cleaning.length}</span>
+    <span class="cc-rooms">${cleaning.map(r=>r.id).join('、')}</span>
+    <span class="cc-arrow">→</span>
+  </div>`:'';
+  document.getElementById('cleaningChipHolder').innerHTML=cleaningChip;
 
   document.getElementById('statsGrid').innerHTML=`
     <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">總房間數</div><div class="stat-value">${total}</div></div><div class="stat-icon">🏢</div></div><div class="stat-sub">套房</div></div>
