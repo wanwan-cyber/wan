@@ -1691,12 +1691,18 @@ function renderPaymentsPage(){
   // Desktop
   document.getElementById('payTableBody').innerHTML=occ.map(r=>{
     const info=ri(r.id),ps=pays[r.id]||{status:'unpaid'},total=calcTotal(r.id,key);
-    const badge=ps.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':ps.status==='partial'?'<span class="badge badge-yellow">部分</span>':'<span class="badge badge-red">未繳</span>';
+    const paidAmt=Number(ps.amount)||0;
+    const owe=Math.max(0,total-paidAmt);
+    const badge=ps.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':ps.status==='partial'?`<span class="badge badge-yellow">部分 ($${paidAmt.toLocaleString()})</span>`:'<span class="badge badge-red">未繳</span>';
+    // 應繳欄：部分繳費時顯示還欠多少
+    const amountCell=ps.status==='partial'
+      ?`<strong>$${total.toLocaleString()}</strong><div style="font-size:11px;color:var(--danger);font-weight:600;margin-top:2px">尚欠 $${owe.toLocaleString()}</div>`
+      :`<strong>$${total.toLocaleString()}</strong>`;
     return `<tr>
       <td><button class="btn btn-primary btn-sm" onclick="openPayModal('${r.id}','${key}')">更新</button></td>
       <td><strong>${r.id}</strong></td>
       <td>${info.tenant||'—'}</td>
-      <td><strong>$${total.toLocaleString()}</strong></td>
+      <td>${amountCell}</td>
       <td>${badge}</td>
       <td style="font-size:12px;line-height:1.3">${fmtDate(ps.date)}</td>
       <td>${methodHtml(ps)}</td>
@@ -1707,7 +1713,14 @@ function renderPaymentsPage(){
   // Mobile cards
   document.getElementById('payMobileCards').innerHTML=occ.map(r=>{
     const info=ri(r.id),ps=pays[r.id]||{status:'unpaid'},total=calcTotal(r.id,key);
-    const badge=ps.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':ps.status==='partial'?'<span class="badge badge-yellow">部分</span>':'<span class="badge badge-red">未繳</span>';
+    const paidAmt=Number(ps.amount)||0;
+    const owe=Math.max(0,total-paidAmt);
+    const badge=ps.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':ps.status==='partial'?`<span class="badge badge-yellow">部分</span>`:'<span class="badge badge-red">未繳</span>';
+    const amountBlock=ps.status==='partial'
+      ?`<div><div class="k">應繳 / 已繳</div><div class="v amt">$${total.toLocaleString()} / $${paidAmt.toLocaleString()}</div></div>
+        <div><div class="k">尚欠</div><div class="v amt" style="color:var(--danger)">$${owe.toLocaleString()}</div></div>`
+      :`<div><div class="k">應繳金額</div><div class="v amt">$${total.toLocaleString()}</div></div>
+        <div><div class="k">繳費時間</div><div class="v" style="line-height:1.3">${fmtDate(ps.date)}</div></div>`;
     return `<div class="m-card">
       <div class="m-card-top">
         <div>
@@ -1717,8 +1730,8 @@ function renderPaymentsPage(){
         <button class="btn btn-primary btn-sm" onclick="openPayModal('${r.id}','${key}')">更新</button>
       </div>
       <div class="m-card-grid">
-        <div><div class="k">應繳金額</div><div class="v amt">$${total.toLocaleString()}</div></div>
-        <div><div class="k">繳費時間</div><div class="v" style="line-height:1.3">${fmtDate(ps.date)}</div></div>
+        ${amountBlock}
+        ${ps.status==='partial'?`<div class="m-card-full"><div class="k">繳費時間</div><div class="v" style="line-height:1.3">${fmtDate(ps.date)}</div></div>`:''}
         <div class="m-card-full"><div class="k">繳費方式</div><div class="v">${methodHtml(ps)}</div></div>
         ${ps.updatedAt?`<div class="m-card-full"><div class="k">登記時間</div><div class="v" style="font-size:11px;color:var(--text3)">${ps.updatedAt}</div></div>`:''}
         ${ps.note?`<div class="m-card-full"><div class="k">備註</div><div class="v" style="font-size:11.5px">${ps.note}</div></div>`:''}
@@ -1731,7 +1744,12 @@ function openPayModal(roomId,key){
   editingPayRoom=roomId; editingPayKey=key;
   const ps=((payments[key]||{})[roomId])||{};
   const total=calcTotal(roomId,key);
-  document.getElementById('payModalTitle').textContent=`${roomId} — 應繳 $${total.toLocaleString()}`;
+  const paidAmt=Number(ps.amount)||0;
+  const owe=ps.status==='partial'?Math.max(0,total-paidAmt):0;
+  document.getElementById('payModalTitle').textContent=
+    ps.status==='partial'
+      ? `${roomId} — 應繳 $${total.toLocaleString()} · 尚欠 $${owe.toLocaleString()}`
+      : `${roomId} — 應繳 $${total.toLocaleString()}`;
   document.getElementById('pmStatus').value=ps.status||'unpaid';
   // datetime-local needs YYYY-MM-DDTHH:mm
   if(ps.date){
