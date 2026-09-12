@@ -428,7 +428,6 @@ textarea{resize:vertical;min-height:72px;}
     <div class="nav-item" onclick="showPage('meter')"><span class="nav-icon">⚡</span>抄表紀錄</div>
     <div class="nav-item" onclick="showPage('billing')"><span class="nav-icon">💰</span>繳費明細</div>
     <div class="nav-item" onclick="showPage('payments')"><span class="nav-icon">📋</span>繳費紀錄</div>
-    <div class="nav-item" onclick="showPage('expenses')"><span class="nav-icon">💸</span>支出管理</div>
     <div class="nav-item" onclick="showPage('pettycash')"><span class="nav-icon">👛</span>零用金</div>
     <div class="nav-item" onclick="showPage('notice')"><span class="nav-icon">📢</span>繳費通知</div>
     <div class="nav-sec">管理</div>
@@ -656,6 +655,14 @@ textarea{resize:vertical;min-height:72px;}
               <option value="income">📥 存入</option>
               <option value="expense">📤 支出</option>
             </select>
+            <select id="pcCategoryFilter" onchange="renderPettyCashPage()" style="width:auto;padding:6px 10px;font-size:13px">
+              <option value="">全部類別</option>
+              <option value="repair">🔧 修繕維護</option>
+              <option value="cleaning">🧹 清潔費用</option>
+              <option value="publicElec">⚡ 公用電費</option>
+              <option value="decoration">🌱 花木裝飾</option>
+              <option value="other">📝 其他</option>
+            </select>
             <button class="btn btn-secondary btn-sm" onclick="exportPettyCashCSV()">📥 匯出CSV</button>
           </div>
         </div>
@@ -663,7 +670,7 @@ textarea{resize:vertical;min-height:72px;}
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>操作</th><th>日期</th><th>類型</th><th>項目</th><th>金額</th><th>房號</th><th>備註</th>
+                <th>操作</th><th>日期</th><th>類型</th><th>類別</th><th>項目</th><th>金額</th><th>房號</th><th>付款方式</th><th>備註</th>
               </tr></thead>
               <tbody id="pcTableBody"></tbody>
             </table>
@@ -947,11 +954,29 @@ textarea{resize:vertical;min-height:72px;}
         <div class="form-group"><label>日期</label><input id="pcDate" type="date"></div>
         <div class="form-group"><label>金額 (元)</label><input id="pcAmount" type="number" placeholder="500"></div>
       </div>
-      <div class="form-group"><label>項目說明</label><input id="pcItem" placeholder="例：買清潔用品 / 提領零用金"></div>
-      <div class="form-group"><label>相關房號（選填）</label>
-        <select id="pcRoomId">
-          <option value="">-- 無 --</option>
+      <div class="form-group" id="pcCategoryGroup"><label>支出類別</label>
+        <select id="pcCategory">
+          <option value="repair">🔧 修繕維護</option>
+          <option value="cleaning">🧹 清潔費用</option>
+          <option value="publicElec">⚡ 公用電費</option>
+          <option value="decoration">🌱 花木裝飾</option>
+          <option value="other">📝 其他</option>
         </select>
+      </div>
+      <div class="form-group"><label>項目說明</label><input id="pcItem" placeholder="例：買清潔用品 / 提領零用金"></div>
+      <div class="form-row">
+        <div class="form-group"><label>相關房號（選填）</label>
+          <select id="pcRoomId">
+            <option value="">-- 無 --</option>
+          </select>
+        </div>
+        <div class="form-group" id="pcMethodGroup"><label>付款方式</label>
+          <select id="pcMethod">
+            <option value="cash">💵 現金</option>
+            <option value="transfer">🏦 匯款</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
       </div>
       <div class="form-group"><label>備註</label><textarea id="pcNote" placeholder="其他說明…"></textarea></div>
     </div>
@@ -1241,7 +1266,6 @@ let payments = ld('rm_payments',{});
 let cfg      = ld('rm_cfg',{elecRate:6,waterRate:200});
 let viewings = ld('rm_viewings',[]);
 let expenses = ld('rm_expenses',[]);
-let pettyCash = ld('rm_pettycash',[]);
 let pettyCash = ld('rm_pettycash',[]);
 
 // Ensure cfg has values
@@ -2424,6 +2448,32 @@ function exportExpensesCSV(){
   toast('📥 CSV已匯出');
 }
 
+// ── 遷移舊 expenses 到 pettyCash ──
+(function migrateExpensesToPettyCash(){
+  if(!expenses.length) return;
+  const existingIds=new Set(pettyCash.map(p=>p.id));
+  const migrated=expenses.filter(e=>!existingIds.has(e.id)).map(e=>({
+    id:e.id||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+    type:'expense',
+    date:e.date||'',
+    amount:Number(e.amount)||0,
+    item:e.item||'',
+    roomId:e.roomId||'',
+    category:e.category||'other',
+    method:e.method||'cash',
+    note:e.note||'',
+    createdAt:e.createdAt||new Date().toISOString(),
+    updatedAt:e.updatedAt||new Date().toISOString(),
+  }));
+  if(migrated.length){
+    pettyCash=[...pettyCash,...migrated];
+    expenses=[];
+    localStorage.setItem('rm_pettycash',JSON.stringify(pettyCash));
+    localStorage.setItem('rm_expenses',JSON.stringify(expenses));
+    console.log('[Migration] 已將 '+migrated.length+' 筆支出併入零用金');
+  }
+})();
+
 // ── PETTY CASH ──
 let pcType='expense';
 function pcBalance(list){
@@ -2432,6 +2482,7 @@ function pcBalance(list){
 function renderPettyCashPage(){
   const monFilter=(document.getElementById('pcMonthFilter')||{}).value||'';
   const typFilter=(document.getElementById('pcTypeFilter')||{}).value||'';
+  const catFilter=(document.getElementById('pcCategoryFilter')||{}).value||'';
 
   // Month options
   const monSet=[...new Set(pettyCash.map(e=>(e.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
@@ -2463,7 +2514,20 @@ function renderPettyCashPage(){
   let filtered=[...pettyCash];
   if(monFilter) filtered=filtered.filter(e=>(e.date||'').startsWith(monFilter));
   if(typFilter) filtered=filtered.filter(e=>e.type===typFilter);
+  if(catFilter) filtered=filtered.filter(e=>e.type==='expense'&&e.category===catFilter);
   filtered.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+
+  const catBadge=(cat)=>{
+    if(!cat) return '<span style="color:var(--text3)">—</span>';
+    const c=EX_CATEGORY[cat]||EX_CATEGORY.other;
+    return `<span class="badge" style="background:${c.bg};color:${c.color};font-size:11px">${c.label}</span>`;
+  };
+  const methodTxt=(m)=>{
+    if(m==='cash') return '💵 現金';
+    if(m==='transfer') return '🏦 匯款';
+    if(m==='other') return '其他';
+    return '—';
+  };
 
   // Desktop
   document.getElementById('pcTableBody').innerHTML=filtered.length?filtered.map(e=>{
@@ -2472,12 +2536,14 @@ function renderPettyCashPage(){
       <td><button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button></td>
       <td style="font-size:12px">${e.date||'—'}</td>
       <td>${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}</td>
+      <td>${isIn?'<span style="color:var(--text3)">—</span>':catBadge(e.category)}</td>
       <td>${e.item||'—'}</td>
       <td><strong style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</strong></td>
       <td>${e.roomId?`<span class="badge badge-blue">${e.roomId}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)" title="${e.note||''}">${e.note||'—'}</td>
+      <td style="font-size:12px">${isIn?'<span style="color:var(--text3)">—</span>':methodTxt(e.method)}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)" title="${e.note||''}">${e.note||'—'}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">尚無紀錄，點右上「＋ 存入 / 支出」開始</td></tr>';
+  }).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:30px">尚無紀錄，點右上「＋ 存入 / 支出」開始</td></tr>';
 
   // Mobile
   document.getElementById('pcMobileCards').innerHTML=filtered.length?filtered.map(e=>{
@@ -2486,9 +2552,10 @@ function renderPettyCashPage(){
       <div class="m-card-top">
         <div>
           <div class="m-card-room" style="font-size:14px">${e.item||'（無說明）'}</div>
-          <div class="m-card-tenant">
+          <div class="m-card-tenant" style="flex-wrap:wrap;gap:4px">
             ${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}
-            <span style="margin-left:6px;color:var(--text3);font-size:12px">${e.date||'—'}</span>
+            ${!isIn&&e.category?catBadge(e.category):''}
+            <span style="color:var(--text3);font-size:12px">${e.date||'—'}</span>
           </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button>
@@ -2496,6 +2563,7 @@ function renderPettyCashPage(){
       <div class="m-card-grid">
         <div><div class="k">金額</div><div class="v amt" style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</div></div>
         <div><div class="k">房號</div><div class="v">${e.roomId||'—'}</div></div>
+        ${!isIn?`<div class="m-card-full"><div class="k">付款方式</div><div class="v">${methodTxt(e.method)}</div></div>`:''}
         ${e.note?`<div class="m-card-full"><div class="k">備註</div><div class="v" style="font-size:11.5px">${e.note}</div></div>`:''}
       </div>
     </div>`;
@@ -2509,6 +2577,9 @@ function setPcType(t){
   const exp=document.getElementById('pcTypeExpense');
   inc.classList.toggle('pc-type-active',t==='income');
   exp.classList.toggle('pc-type-active',t==='expense');
+  // 只有支出才需要類別 & 付款方式
+  document.getElementById('pcCategoryGroup').style.display=t==='expense'?'':'none';
+  document.getElementById('pcMethodGroup').style.display=t==='expense'?'':'none';
 }
 function openPettyCashModal(id,defaultType){
   editingPcId=id||null;
@@ -2523,6 +2594,8 @@ function openPettyCashModal(id,defaultType){
     document.getElementById('pcAmount').value=e.amount||'';
     document.getElementById('pcItem').value=e.item||'';
     document.getElementById('pcRoomId').value=e.roomId||'';
+    document.getElementById('pcCategory').value=e.category||'other';
+    document.getElementById('pcMethod').value=e.method||'cash';
     document.getElementById('pcNote').value=e.note||'';
   } else {
     setPcType(defaultType||'expense');
@@ -2530,6 +2603,8 @@ function openPettyCashModal(id,defaultType){
     document.getElementById('pcAmount').value='';
     document.getElementById('pcItem').value='';
     document.getElementById('pcRoomId').value='';
+    document.getElementById('pcCategory').value='other';
+    document.getElementById('pcMethod').value='cash';
     document.getElementById('pcNote').value='';
   }
   document.getElementById('pettyCashModal').style.display='flex';
@@ -2537,6 +2612,7 @@ function openPettyCashModal(id,defaultType){
 function closePettyCashModal(){document.getElementById('pettyCashModal').style.display='none';}
 function savePettyCash(){
   const now=new Date().toISOString();
+  const isExp=pcType==='expense';
   const record={
     id:editingPcId||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
     type:pcType,
@@ -2544,6 +2620,8 @@ function savePettyCash(){
     amount:parseFloat(document.getElementById('pcAmount').value)||0,
     item:document.getElementById('pcItem').value.trim(),
     roomId:document.getElementById('pcRoomId').value,
+    category:isExp?document.getElementById('pcCategory').value:'',
+    method:isExp?document.getElementById('pcMethod').value:'',
     note:document.getElementById('pcNote').value,
     updatedAt:now,
   };
@@ -2571,17 +2649,19 @@ function deletePettyCash(){
   toast('🗑 已刪除');
 }
 function exportPettyCashCSV(){
-  let csv='\uFEFF日期,類型,項目,金額,房號,備註\n';
+  let csv='\uFEFF日期,類型,類別,項目,金額,房號,付款方式,備註\n';
   const sorted=[...pettyCash].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   sorted.forEach(e=>{
     const t=e.type==='income'?'存入':'支出';
+    const cat=e.type==='expense'?(EX_CATEGORY[e.category]||EX_CATEGORY.other).label.replace(/^\S+ /,''):'';
+    const m=e.type==='expense'?(e.method==='cash'?'現金':e.method==='transfer'?'匯款':e.method==='other'?'其他':''):'';
     const item=(e.item||'').replace(/"/g,'""');
     const note=(e.note||'').replace(/"/g,'""').replace(/\n/g,' ');
-    csv+=`${e.date||''},${t},"${item}",${e.amount||0},${e.roomId||''},"${note}"\n`;
+    csv+=`${e.date||''},${t},${cat},"${item}",${e.amount||0},${e.roomId||''},${m},"${note}"\n`;
   });
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download=`零用金紀錄_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download=`零用金收支_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   toast('📥 CSV已匯出');
 }
