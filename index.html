@@ -201,12 +201,39 @@ textarea{resize:vertical;min-height:72px;}
 .alert{border-radius:10px;padding:11px 15px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:13px;}
 /* Compact cleaning identifier chip */
 .cleaning-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 10px;background:linear-gradient(90deg,#FBF1DE 0%,#F5E5C6 100%);border:1px solid #E5D8C2;border-radius:99px;font-size:12.5px;color:#8C6F4F;cursor:pointer;margin-bottom:14px;transition:all .15s;box-shadow:0 1px 2px rgba(93,70,49,.06);}
+/* Petty Cash hero */
+.pc-hero{background:linear-gradient(135deg,#4F6849 0%,#3A4F36 100%);color:#fff;border:none;padding:24px 26px;margin-bottom:16px;box-shadow:0 6px 20px rgba(79,104,73,.18);}
+.pc-hero-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.pc-hero-left{flex:1;min-width:200px;}
+.pc-label{font-size:13px;font-weight:600;color:#FFE9A8;opacity:.9;margin-bottom:6px;}
+.pc-balance{font-size:42px;font-weight:800;line-height:1;font-family:'Georgia','Noto Serif TC',serif;letter-spacing:.5px;}
+.pc-hero-hint{font-size:11.5px;color:rgba(255,255,255,.55);margin-top:6px;}
+.pc-hero-actions{display:flex;gap:8px;}
+.pc-btn-income,.pc-btn-expense{padding:11px 18px;font-size:13.5px;font-weight:700;border-radius:10px;border:none;cursor:pointer;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+.pc-btn-income{background:#FFE9A8;color:#4F6849;}
+.pc-btn-income:hover{background:#FFD971;transform:translateY(-1px);}
+.pc-btn-expense{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,233,168,.4);}
+.pc-btn-expense:hover{background:rgba(255,255,255,.25);transform:translateY(-1px);}
+.pc-type-active{border-color:var(--primary)!important;background:var(--primary-light)!important;color:var(--primary-dark)!important;}
 .cleaning-chip:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(93,70,49,.12);}
 .cleaning-chip .cc-icon{font-size:14px;}
 .cleaning-chip .cc-label{font-weight:700;}
 .cleaning-chip .cc-count{background:#B07F2C;color:#fff;font-weight:700;padding:1px 8px;border-radius:99px;font-size:11px;}
 .cleaning-chip .cc-rooms{color:var(--text2);font-size:11.5px;padding-left:2px;border-left:1px solid #D6C7A9;padding-left:8px;margin-left:2px;}
 .cleaning-chip .cc-arrow{color:var(--text3);font-size:11px;margin-left:2px;}
+/* Petty Cash hero */
+.pc-hero{background:linear-gradient(135deg,#5D4631 0%,#8C6F4F 100%);color:#FFE9A8;border:none;margin-bottom:16px;overflow:hidden;position:relative;}
+.pc-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,233,168,.06);}
+.pc-hero::after{content:'';position:absolute;bottom:-40px;left:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,233,168,.05);}
+.pc-hero-inner{padding:22px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;position:relative;z-index:1;}
+.pc-label{font-size:12.5px;color:rgba(255,233,168,.75);font-weight:600;margin-bottom:8px;letter-spacing:.05em;}
+.pc-balance{font-size:38px;font-weight:800;color:#FFE9A8;line-height:1.1;font-family:'Georgia','Noto Serif TC',serif;text-shadow:0 2px 8px rgba(0,0,0,.15);}
+.pc-hero-hint{font-size:11.5px;color:rgba(255,233,168,.55);margin-top:6px;}
+.pc-hero-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.pc-btn-income{background:#7CA868;color:#fff;border:none;padding:10px 20px;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:all .15s;}
+.pc-btn-income:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(0,0,0,.22);}
+.pc-btn-expense{background:#C97B5C;color:#fff;border:none;padding:10px 20px;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:all .15s;}
+.pc-btn-expense:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(0,0,0,.22);}
 .alert-warning{background:var(--warning-light);border:1px solid #FDE68A;color:#92400E;}
 .alert-danger{background:var(--danger-light);border:1px solid #FECACA;color:#991B1B;}
 .alert-icon{font-size:17px;flex-shrink:0;}
@@ -402,6 +429,7 @@ textarea{resize:vertical;min-height:72px;}
     <div class="nav-item" onclick="showPage('billing')"><span class="nav-icon">💰</span>繳費明細</div>
     <div class="nav-item" onclick="showPage('payments')"><span class="nav-icon">📋</span>繳費紀錄</div>
     <div class="nav-item" onclick="showPage('expenses')"><span class="nav-icon">💸</span>支出管理</div>
+    <div class="nav-item" onclick="showPage('pettycash')"><span class="nav-icon">👛</span>零用金</div>
     <div class="nav-item" onclick="showPage('notice')"><span class="nav-icon">📢</span>繳費通知</div>
     <div class="nav-sec">管理</div>
     <div class="nav-item" onclick="showPage('contracts')"><span class="nav-icon">📅</span>合約到期 <span class="nav-badge" id="contractBadge" style="display:none">!</span></div>
@@ -593,6 +621,54 @@ textarea{resize:vertical;min-height:72px;}
             </table>
           </div>
           <div class="mobile-cards" id="expensesMobileCards"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Petty Cash -->
+    <div id="page-pettycash" class="page">
+      <!-- Balance hero card -->
+      <div class="card pc-hero" id="pcHero">
+        <div class="pc-hero-inner">
+          <div class="pc-hero-left">
+            <div class="pc-label">💰 目前零用金餘額</div>
+            <div class="pc-balance" id="pcBalance">$0</div>
+            <div class="pc-hero-hint" id="pcHint">尚未有任何交易紀錄</div>
+          </div>
+          <div class="pc-hero-actions">
+            <button class="btn pc-btn-income" onclick="openPettyCashModal(null,'income')">＋ 存入</button>
+            <button class="btn pc-btn-expense" onclick="openPettyCashModal(null,'expense')">－ 支出</button>
+          </div>
+        </div>
+      </div>
+      <!-- Month stats -->
+      <div class="stats-grid" id="pcStats" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;"></div>
+      <!-- Records -->
+      <div class="card">
+        <div class="card-header">
+          <h3>📖 交易明細</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="pcMonthFilter" onchange="renderPettyCashPage()" style="width:auto;padding:6px 10px;font-size:13px">
+              <option value="">全部月份</option>
+            </select>
+            <select id="pcTypeFilter" onchange="renderPettyCashPage()" style="width:auto;padding:6px 10px;font-size:13px">
+              <option value="">全部類型</option>
+              <option value="income">📥 存入</option>
+              <option value="expense">📤 支出</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="exportPettyCashCSV()">📥 匯出CSV</button>
+          </div>
+        </div>
+        <div class="card-body p0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>操作</th><th>日期</th><th>類型</th><th>項目</th><th>金額</th><th>房號</th><th>備註</th>
+              </tr></thead>
+              <tbody id="pcTableBody"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="pcMobileCards"></div>
         </div>
       </div>
     </div>
@@ -848,6 +924,45 @@ textarea{resize:vertical;min-height:72px;}
   </div>
 </div>
 
+<!-- Petty Cash Modal -->
+<div class="modal-overlay" id="pettyCashModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header" id="pcModalHeader">
+      <h3 id="pettyCashModalTitle">新增紀錄</h3>
+      <button class="modal-close" onclick="closePettyCashModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>類型</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div id="pcTypeIncome" onclick="setPcType('income')" style="padding:12px;text-align:center;border-radius:10px;cursor:pointer;font-weight:600;border:2px solid var(--border);background:var(--surface);transition:all .1s">
+            📥 存入
+          </div>
+          <div id="pcTypeExpense" onclick="setPcType('expense')" style="padding:12px;text-align:center;border-radius:10px;cursor:pointer;font-weight:600;border:2px solid var(--border);background:var(--surface);transition:all .1s">
+            📤 支出
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>日期</label><input id="pcDate" type="date"></div>
+        <div class="form-group"><label>金額 (元)</label><input id="pcAmount" type="number" placeholder="500"></div>
+      </div>
+      <div class="form-group"><label>項目說明</label><input id="pcItem" placeholder="例：買清潔用品 / 提領零用金"></div>
+      <div class="form-group"><label>相關房號（選填）</label>
+        <select id="pcRoomId">
+          <option value="">-- 無 --</option>
+        </select>
+      </div>
+      <div class="form-group"><label>備註</label><textarea id="pcNote" placeholder="其他說明…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="pcDeleteBtn" onclick="deletePettyCash()" style="margin-right:auto;display:none">🗑 刪除</button>
+      <button class="btn btn-secondary" onclick="closePettyCashModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePettyCash()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- Expense Modal -->
 <div class="modal-overlay" id="expenseModal" style="display:none">
   <div class="modal">
@@ -1002,7 +1117,7 @@ const ROOM_LIST=[
 
 function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
 // key mapping: localStorage key → cloud field name
-const CLOUD_KEY={rm_rooms:'rooms',rm_meters:'meters',rm_payments:'payments',rm_cfg:'config',rm_viewings:'viewings',rm_expenses:'expenses'};
+const CLOUD_KEY={rm_rooms:'rooms',rm_meters:'meters',rm_payments:'payments',rm_cfg:'config',rm_viewings:'viewings',rm_expenses:'expenses',rm_pettycash:'pettycash'};
 function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud(CLOUD_KEY[k]);}
 
 // ── CLOUD SYNC (Google Sheets via Apps Script) ──
@@ -1054,6 +1169,7 @@ async function loadFromCloud(silent){
     if(data.config&&data.config.elecRate){cfg=data.config;localStorage.setItem('rm_cfg',JSON.stringify(cfg));}
     if(data.viewings&&Array.isArray(data.viewings)){viewings=data.viewings;localStorage.setItem('rm_viewings',JSON.stringify(viewings));}
     if(data.expenses&&Array.isArray(data.expenses)){expenses=data.expenses;localStorage.setItem('rm_expenses',JSON.stringify(expenses));}
+    if(data.pettycash&&Array.isArray(data.pettycash)){pettyCash=data.pettycash;localStorage.setItem('rm_pettycash',JSON.stringify(pettyCash));}
     setSyncState('saved');
     rerenderCurrent();
     // 本機有資料但雲端是空的 → 自動上傳一次，避免「假已同步」
@@ -1115,6 +1231,7 @@ function rerenderCurrent(){
   else if(cur==='contracts') renderContractsPage();
   else if(cur==='viewings') renderViewingsPage();
   else if(cur==='expenses') renderExpensesPage();
+  else if(cur==='pettycash') renderPettyCashPage();
   else if(cur==='settings') renderSettingsPage();
 }
 
@@ -1124,6 +1241,8 @@ let payments = ld('rm_payments',{});
 let cfg      = ld('rm_cfg',{elecRate:6,waterRate:200});
 let viewings = ld('rm_viewings',[]);
 let expenses = ld('rm_expenses',[]);
+let pettyCash = ld('rm_pettycash',[]);
+let pettyCash = ld('rm_pettycash',[]);
 
 // Ensure cfg has values
 cfg.elecRate  = cfg.elecRate  || 6;
@@ -1254,7 +1373,7 @@ function updateSidebar(){
 }
 
 // ── NAV ──
-const pageTitles={overview:'總覽',rooms:'房號管理',status:'房間狀態',viewings:'帶看區',meter:'抄表紀錄',billing:'繳費明細',payments:'繳費紀錄',expenses:'支出管理',notice:'繳費通知',contracts:'合約到期管理',settings:'系統設定'};
+const pageTitles={overview:'總覽',rooms:'房號管理',status:'房間狀態',viewings:'帶看區',meter:'抄表紀錄',billing:'繳費明細',payments:'繳費紀錄',expenses:'支出管理',pettycash:'零用金',notice:'繳費通知',contracts:'合約到期管理',settings:'系統設定'};
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1273,6 +1392,7 @@ function showPage(name){
   if(name==='contracts') renderContractsPage();
   if(name==='viewings')  renderViewingsPage();
   if(name==='expenses')  renderExpensesPage();
+  if(name==='pettycash') renderPettyCashPage();
   if(name==='settings')  renderSettingsPage();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2300,6 +2420,168 @@ function exportExpensesCSV(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download=`支出紀錄_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('📥 CSV已匯出');
+}
+
+// ── PETTY CASH ──
+let pcType='expense';
+function pcBalance(list){
+  return (list||pettyCash).reduce((s,e)=>s+(e.type==='income'?1:-1)*Number(e.amount||0),0);
+}
+function renderPettyCashPage(){
+  const monFilter=(document.getElementById('pcMonthFilter')||{}).value||'';
+  const typFilter=(document.getElementById('pcTypeFilter')||{}).value||'';
+
+  // Month options
+  const monSet=[...new Set(pettyCash.map(e=>(e.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const monSel=document.getElementById('pcMonthFilter');
+  const prev=monSel.value;
+  monSel.innerHTML='<option value="">全部月份</option>'+monSet.map(m=>`<option value="${m}"${m===prev?' selected':''}>${m}</option>`).join('');
+  monSel.value=prev;
+
+  // Balance & hint
+  const bal=pcBalance();
+  const balEl=document.getElementById('pcBalance');
+  balEl.textContent='$'+bal.toLocaleString();
+  balEl.style.color=bal<0?'#F4B5B3':'#fff';
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const thisIn=pettyCash.filter(e=>e.type==='income'&&(e.date||'').startsWith(thisMonth)).reduce((s,e)=>s+Number(e.amount||0),0);
+  const thisOut=pettyCash.filter(e=>e.type==='expense'&&(e.date||'').startsWith(thisMonth)).reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalTxn=pettyCash.length;
+  document.getElementById('pcHint').textContent=totalTxn?`共 ${totalTxn} 筆交易 · 本月 +$${thisIn.toLocaleString()} / -$${thisOut.toLocaleString()}`:'尚未有任何交易紀錄';
+
+  // Month stats
+  document.getElementById('pcStats').innerHTML=`
+    <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">本月存入</div><div class="stat-value">$${thisIn.toLocaleString()}</div></div><div class="stat-icon">📥</div></div><div class="stat-sub">${thisMonth}</div></div>
+    <div class="stat-card red"><div class="stat-top"><div><div class="stat-label">本月支出</div><div class="stat-value">$${thisOut.toLocaleString()}</div></div><div class="stat-icon">📤</div></div><div class="stat-sub">${thisMonth}</div></div>
+    <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">本月淨額</div><div class="stat-value">${thisIn-thisOut>=0?'+':''}$${(thisIn-thisOut).toLocaleString()}</div></div><div class="stat-icon">📊</div></div><div class="stat-sub">收支差額</div></div>
+  `;
+
+  // Filter & sort
+  let filtered=[...pettyCash];
+  if(monFilter) filtered=filtered.filter(e=>(e.date||'').startsWith(monFilter));
+  if(typFilter) filtered=filtered.filter(e=>e.type===typFilter);
+  filtered.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+
+  // Desktop
+  document.getElementById('pcTableBody').innerHTML=filtered.length?filtered.map(e=>{
+    const isIn=e.type==='income';
+    return `<tr>
+      <td><button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button></td>
+      <td style="font-size:12px">${e.date||'—'}</td>
+      <td>${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}</td>
+      <td>${e.item||'—'}</td>
+      <td><strong style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</strong></td>
+      <td>${e.roomId?`<span class="badge badge-blue">${e.roomId}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)" title="${e.note||''}">${e.note||'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">尚無紀錄，點右上「＋ 存入 / 支出」開始</td></tr>';
+
+  // Mobile
+  document.getElementById('pcMobileCards').innerHTML=filtered.length?filtered.map(e=>{
+    const isIn=e.type==='income';
+    return `<div class="m-card">
+      <div class="m-card-top">
+        <div>
+          <div class="m-card-room" style="font-size:14px">${e.item||'（無說明）'}</div>
+          <div class="m-card-tenant">
+            ${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}
+            <span style="margin-left:6px;color:var(--text3);font-size:12px">${e.date||'—'}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button>
+      </div>
+      <div class="m-card-grid">
+        <div><div class="k">金額</div><div class="v amt" style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</div></div>
+        <div><div class="k">房號</div><div class="v">${e.roomId||'—'}</div></div>
+        ${e.note?`<div class="m-card-full"><div class="k">備註</div><div class="v" style="font-size:11.5px">${e.note}</div></div>`:''}
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="es-icon">👛</div><p>尚無紀錄</p></div>';
+}
+
+let editingPcId=null;
+function setPcType(t){
+  pcType=t;
+  const inc=document.getElementById('pcTypeIncome');
+  const exp=document.getElementById('pcTypeExpense');
+  inc.classList.toggle('pc-type-active',t==='income');
+  exp.classList.toggle('pc-type-active',t==='expense');
+}
+function openPettyCashModal(id,defaultType){
+  editingPcId=id||null;
+  const e=id?pettyCash.find(x=>x.id===id):null;
+  document.getElementById('pettyCashModalTitle').textContent=id?'編輯紀錄':(defaultType==='income'?'📥 新增存入':'📤 新增支出');
+  document.getElementById('pcDeleteBtn').style.display=id?'inline-flex':'none';
+  const rSel=document.getElementById('pcRoomId');
+  rSel.innerHTML='<option value="">-- 無 --</option>'+MANAGED_ROOMS.map(r=>`<option value="${r.id}">${r.id}${ri(r.id).tenant?' ('+ri(r.id).tenant+')':''}</option>`).join('');
+  if(e){
+    setPcType(e.type||'expense');
+    document.getElementById('pcDate').value=e.date||'';
+    document.getElementById('pcAmount').value=e.amount||'';
+    document.getElementById('pcItem').value=e.item||'';
+    document.getElementById('pcRoomId').value=e.roomId||'';
+    document.getElementById('pcNote').value=e.note||'';
+  } else {
+    setPcType(defaultType||'expense');
+    document.getElementById('pcDate').value=new Date().toISOString().slice(0,10);
+    document.getElementById('pcAmount').value='';
+    document.getElementById('pcItem').value='';
+    document.getElementById('pcRoomId').value='';
+    document.getElementById('pcNote').value='';
+  }
+  document.getElementById('pettyCashModal').style.display='flex';
+}
+function closePettyCashModal(){document.getElementById('pettyCashModal').style.display='none';}
+function savePettyCash(){
+  const now=new Date().toISOString();
+  const record={
+    id:editingPcId||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+    type:pcType,
+    date:document.getElementById('pcDate').value,
+    amount:parseFloat(document.getElementById('pcAmount').value)||0,
+    item:document.getElementById('pcItem').value.trim(),
+    roomId:document.getElementById('pcRoomId').value,
+    note:document.getElementById('pcNote').value,
+    updatedAt:now,
+  };
+  if(!record.item){toast('⚠️ 請輸入項目說明');return;}
+  if(!record.amount){toast('⚠️ 請輸入金額');return;}
+  if(editingPcId){
+    const idx=pettyCash.findIndex(x=>x.id===editingPcId);
+    if(idx>=0) pettyCash[idx]=record;
+  } else {
+    record.createdAt=now;
+    pettyCash.push(record);
+  }
+  sd('rm_pettycash',pettyCash);
+  closePettyCashModal();
+  renderPettyCashPage();
+  toast(editingPcId?'✓ 已更新':(pcType==='income'?'✓ 已存入':'✓ 已支出'));
+}
+function deletePettyCash(){
+  if(!editingPcId) return;
+  if(!confirm('確定刪除這筆紀錄？此動作無法復原。')) return;
+  pettyCash=pettyCash.filter(x=>x.id!==editingPcId);
+  sd('rm_pettycash',pettyCash);
+  closePettyCashModal();
+  renderPettyCashPage();
+  toast('🗑 已刪除');
+}
+function exportPettyCashCSV(){
+  let csv='\uFEFF日期,類型,項目,金額,房號,備註\n';
+  const sorted=[...pettyCash].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  sorted.forEach(e=>{
+    const t=e.type==='income'?'存入':'支出';
+    const item=(e.item||'').replace(/"/g,'""');
+    const note=(e.note||'').replace(/"/g,'""').replace(/\n/g,' ');
+    csv+=`${e.date||''},${t},"${item}",${e.amount||0},${e.roomId||''},"${note}"\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`零用金紀錄_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   toast('📥 CSV已匯出');
 }
