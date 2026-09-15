@@ -221,6 +221,12 @@ textarea{resize:vertical;min-height:72px;}
 .cleaning-chip .cc-count{background:#B07F2C;color:#fff;font-weight:700;padding:1px 8px;border-radius:99px;font-size:11px;}
 .cleaning-chip .cc-rooms{color:var(--text2);font-size:11.5px;padding-left:2px;border-left:1px solid #D6C7A9;padding-left:8px;margin-left:2px;}
 .cleaning-chip .cc-arrow{color:var(--text3);font-size:11px;margin-left:2px;}
+/* Payment reminder chips */
+.pay-remind{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 12px;border-radius:99px;font-size:13px;cursor:pointer;margin:0 8px 10px 0;transition:all .15s;box-shadow:0 1px 3px rgba(93,70,49,.08);font-weight:600;}
+.pay-remind:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(93,70,49,.15);}
+.pay-remind-danger{background:linear-gradient(90deg,#F8E8E7 0%,#F4B5B3 100%);border:1px solid #E5B5B0;color:var(--danger);}
+.pay-remind-warn{background:linear-gradient(90deg,#FBF1DE 0%,#FCD96A 100%);border:1px solid #E5C878;color:#8C6F4F;}
+.pay-remind .cc-rooms{color:inherit;opacity:.8;font-size:12px;font-weight:500;border-left:1px solid rgba(0,0,0,.15);padding-left:8px;margin-left:2px;}
 /* Petty Cash hero */
 .pc-hero{background:linear-gradient(135deg,#5D4631 0%,#8C6F4F 100%);color:#FFE9A8;border:none;margin-bottom:16px;overflow:hidden;position:relative;}
 .pc-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,233,168,.06);}
@@ -252,6 +258,20 @@ textarea{resize:vertical;min-height:72px;}
 .pay-name{font-size:13px;color:var(--text2);min-width:60px;}
 .pay-due-wrap{flex:1;min-width:120px;}
 .pay-due{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:var(--surface2);}
+/* Payment day circle badge */
+.pay-day-circle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:12.5px;font-family:'Georgia','Noto Serif TC',serif;flex-shrink:0;margin-right:6px;box-shadow:0 1px 2px rgba(0,0,0,.08);border:2px solid;transition:transform .1s;cursor:help;}
+.pay-day-circle:hover{transform:scale(1.08);}
+.pay-circle-normal{background:#F5EDDF;color:var(--wood-dark);border-color:#D6C7A9;}
+.pay-circle-paid{background:linear-gradient(135deg,#E5F0E7 0%,#C5DFC9 100%);color:var(--success);border-color:var(--success);}
+.pay-circle-warn{background:linear-gradient(135deg,#FBF1DE 0%,#FCD96A 100%);color:#8C6F4F;border-color:var(--warning);animation:pulseWarn 1.6s ease-in-out infinite;}
+.pay-circle-danger{background:linear-gradient(135deg,#F8E8E7 0%,#F4B5B3 100%);color:var(--danger);border-color:var(--danger);animation:pulseDanger 1.4s ease-in-out infinite;}
+.pay-day-label{font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;vertical-align:middle;}
+.pdl-normal{color:var(--text3);}
+.pdl-paid{color:var(--success);background:var(--success-light);}
+.pdl-warn{color:var(--warning);background:var(--warning-light);}
+.pdl-danger{color:var(--danger);background:var(--danger-light);}
+@keyframes pulseWarn{0%,100%{box-shadow:0 0 0 0 rgba(214,155,71,.4);}50%{box-shadow:0 0 0 5px rgba(214,155,71,0);}}
+@keyframes pulseDanger{0%,100%{box-shadow:0 0 0 0 rgba(184,84,80,.5);}50%{box-shadow:0 0 0 6px rgba(184,84,80,0);}}
 .pay-amt{font-size:13px;font-weight:600;width:80px;text-align:right;}
 
 /* Contract tag */
@@ -459,6 +479,7 @@ textarea{resize:vertical;min-height:72px;}
     <div id="page-overview" class="page active">
       <div id="contractAlerts"></div>
       <div id="cleaningChipHolder"></div>
+      <div id="payReminderHolder"></div>
       <div class="stats-grid" id="statsGrid"></div>
       <div class="grid-2" style="margin-bottom:18px">
         <div class="card">
@@ -1474,6 +1495,39 @@ function renderOverview(){
   </div>`:'';
   document.getElementById('cleaningChipHolder').innerHTML=cleaningChip;
 
+  // 📅 收款日提醒：明天抄表、今天收款、逾期
+  const today=new Date();
+  const curDay=today.getDate();
+  const meterTomorrow=[], dueToday=[], overdueList=[];
+  occ.forEach(r=>{
+    const info=ri(r.id),ps=pays[r.id]||{};
+    if(ps.status==='paid') return;
+    const pd=info.paymentDay; if(!pd) return;
+    let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
+    if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
+    const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
+    if(diff===1) meterTomorrow.push(r.id);
+    else if(diff===0) dueToday.push(r.id);
+    else if(diff<0) overdueList.push(`${r.id}(${-diff}天)`);
+  });
+  let payChip='';
+  if(overdueList.length) payChip+=`<div class="pay-remind pay-remind-danger" onclick="showPage('payments')">
+    <span>⚠️</span><strong>逾期未繳</strong>
+    <span class="cc-count" style="background:var(--danger)">${overdueList.length}</span>
+    <span class="cc-rooms">${overdueList.join('、')}</span>
+    <span class="cc-arrow">→</span></div>`;
+  if(dueToday.length) payChip+=`<div class="pay-remind pay-remind-danger" onclick="showPage('payments')">
+    <span>💰</span><strong>今天收款</strong>
+    <span class="cc-count" style="background:var(--danger)">${dueToday.length}</span>
+    <span class="cc-rooms">${dueToday.join('、')}</span>
+    <span class="cc-arrow">→</span></div>`;
+  if(meterTomorrow.length) payChip+=`<div class="pay-remind pay-remind-warn" onclick="showPage('meter')">
+    <span>📖</span><strong>明天抄表</strong>
+    <span class="cc-count" style="background:var(--warning)">${meterTomorrow.length}</span>
+    <span class="cc-rooms">${meterTomorrow.join('、')}</span>
+    <span class="cc-arrow">→</span></div>`;
+  document.getElementById('payReminderHolder').innerHTML=payChip;
+
   document.getElementById('statsGrid').innerHTML=`
     <div class="stat-card blue"><div class="stat-top"><div><div class="stat-label">總房間數</div><div class="stat-value">${total}</div></div><div class="stat-icon">🏢</div></div><div class="stat-sub">套房</div></div>
     <div class="stat-card green"><div class="stat-top"><div><div class="stat-label">已出租</div><div class="stat-value">${occ.length}</div></div><div class="stat-icon">✅</div></div><div class="stat-sub">入住率 ${Math.round(occ.length/total*100)}%</div><div class="prog-wrap"><div class="prog-fill" style="width:${Math.round(occ.length/total*100)}%;background:var(--success)"></div></div></div>
@@ -1484,7 +1538,6 @@ function renderOverview(){
   document.getElementById('overviewPayStatus').innerHTML=occ.length?occ.map(r=>{
     const info=ri(r.id),p=pays[r.id]||{},t=calcTotal(r.id,key);
     const pd=info.paymentDay;
-    // 計算距離到期天數
     let dueHtml='<span style="color:var(--text3);font-size:11px">未設收款日</span>';
     if(pd){
       const today=new Date();
@@ -1492,13 +1545,17 @@ function renderOverview(){
       let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
       if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
       const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
-      let color='var(--text2)',bg='var(--surface2)';
-      if(p.status==='paid'){ color='var(--text3)'; }
-      else if(diff<0){ color='var(--danger)';bg='var(--danger-light)'; }
-      else if(diff<=3){ color='var(--warning)';bg='var(--warning-light)'; }
-      else if(diff<=7){ color='var(--warning)'; }
-      const label=diff===0?'今天到期':diff<0?`逾期${-diff}天`:`${diff}天後到期`;
-      dueHtml=`<span class="pay-due" style="background:${bg};color:${color}">📅 ${pd}號 · ${p.status==='paid'?'已繳':label}</span>`;
+      let label='',cls='pay-circle-normal';
+      if(p.status==='paid'){
+        cls='pay-circle-paid'; label='已繳';
+      } else if(diff<0){
+        cls='pay-circle-danger'; label=`逾期 ${-diff} 天`;
+      } else if(diff===0){
+        cls='pay-circle-danger'; label='今天收款';
+      } else if(diff===1){
+        cls='pay-circle-warn'; label='📖 明天抄表';
+      }
+      dueHtml=`<span class="pay-day-circle ${cls}" title="每月${pd}號收款">${pd}</span>${label?`<span class="pay-day-label pdl-${cls.split('-').pop()}">${label}</span>`:''}`;
     }
     return `<div class="pay-row">
       <div class="pay-room">${r.id}</div>
