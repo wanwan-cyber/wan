@@ -246,10 +246,12 @@ textarea{resize:vertical;min-height:72px;}
 .info-val{color:var(--text);font-weight:500;flex:1;}
 
 /* Pay rows */
-.pay-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);}
+.pay-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
 .pay-row:last-child{border-bottom:none;}
 .pay-room{font-size:13px;font-weight:700;width:60px;flex-shrink:0;}
-.pay-name{flex:1;font-size:13px;color:var(--text2);}
+.pay-name{font-size:13px;color:var(--text2);min-width:60px;}
+.pay-due-wrap{flex:1;min-width:120px;}
+.pay-due{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:var(--surface2);}
 .pay-amt{font-size:13px;font-weight:600;width:80px;text-align:right;}
 
 /* Contract tag */
@@ -884,6 +886,12 @@ textarea{resize:vertical;min-height:72px;}
         <div class="form-group"><label>月租金（元）</label><input id="rmRent" type="number" placeholder="6000"></div>
         <div class="form-group"><label>押金（元）</label><input id="rmDeposit" type="number" placeholder="12000"></div>
       </div>
+      <div class="form-group"><label>每月收款日</label>
+        <select id="rmPaymentDay">
+          <option value="">-- 未設定 --</option>
+        </select>
+        <div class="form-hint">選擇每月固定收款日（1～31 號），會顯示在繳費狀況</div>
+      </div>
       <div class="form-group"><label>備註</label><textarea id="rmNote" placeholder="特殊約定、注意事項…"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -1474,8 +1482,31 @@ function renderOverview(){
   `;
   document.getElementById('ovPayMonth').textContent=`${curY}年${curM}月`;
   document.getElementById('overviewPayStatus').innerHTML=occ.length?occ.map(r=>{
-    const p=pays[r.id]||{},t=calcTotal(r.id,key);
-    return `<div class="pay-row"><div class="pay-room">${r.id}</div><div class="pay-name">${ri(r.id).tenant||'—'}</div><div>${p.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':'<span class="badge badge-red">未繳</span>'}</div><div class="pay-amt">$${t.toLocaleString()}</div></div>`;
+    const info=ri(r.id),p=pays[r.id]||{},t=calcTotal(r.id,key);
+    const pd=info.paymentDay;
+    // 計算距離到期天數
+    let dueHtml='<span style="color:var(--text3);font-size:11px">未設收款日</span>';
+    if(pd){
+      const today=new Date();
+      const curDay=today.getDate();
+      let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
+      if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
+      const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
+      let color='var(--text2)',bg='var(--surface2)';
+      if(p.status==='paid'){ color='var(--text3)'; }
+      else if(diff<0){ color='var(--danger)';bg='var(--danger-light)'; }
+      else if(diff<=3){ color='var(--warning)';bg='var(--warning-light)'; }
+      else if(diff<=7){ color='var(--warning)'; }
+      const label=diff===0?'今天到期':diff<0?`逾期${-diff}天`:`${diff}天後到期`;
+      dueHtml=`<span class="pay-due" style="background:${bg};color:${color}">📅 ${pd}號 · ${p.status==='paid'?'已繳':label}</span>`;
+    }
+    return `<div class="pay-row">
+      <div class="pay-room">${r.id}</div>
+      <div class="pay-name">${info.tenant||'—'}</div>
+      <div class="pay-due-wrap">${dueHtml}</div>
+      <div>${p.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':p.status==='partial'?'<span class="badge badge-yellow">部分</span>':'<span class="badge badge-red">未繳</span>'}</div>
+      <div class="pay-amt">$${t.toLocaleString()}</div>
+    </div>`;
   }).join(''):'<div class="empty-state"><div class="es-icon">🏠</div><p>尚無出租房間</p></div>';
 
   const mkeys=Object.keys(meters).sort().reverse();
@@ -1693,6 +1724,13 @@ function openRoomModal(id){
   toggleWaterMode();
   document.getElementById('rmRent').value=info.rent||6000;
   document.getElementById('rmDeposit').value=info.deposit||0;
+  // 填充收款日下拉 1-31
+  const daySel=document.getElementById('rmPaymentDay');
+  daySel.innerHTML='<option value="">-- 未設定 --</option>'+Array.from({length:31},(_,i)=>{
+    const d=i+1;
+    return `<option value="${d}">每月 ${d} 號</option>`;
+  }).join('');
+  daySel.value=info.paymentDay||'';
   document.getElementById('rmNote').value=info.note||'';
   document.getElementById('roomModal').style.display='flex';
 }
@@ -1716,6 +1754,7 @@ function saveRoom(){
     waterFixed:parseFloat(document.getElementById('rmWaterFixed').value)||0,
     rent:parseFloat(document.getElementById('rmRent').value)||0,
     deposit:parseFloat(document.getElementById('rmDeposit').value)||0,
+    paymentDay:parseInt(document.getElementById('rmPaymentDay').value)||null,
     note:document.getElementById('rmNote').value,
   };
   sd('rm_rooms',rooms); closeRoomModal(); updateSidebar();
