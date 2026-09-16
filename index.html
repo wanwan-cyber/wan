@@ -2103,18 +2103,63 @@ function savePayment(){
   if(!payments[editingPayKey]) payments[editingPayKey]={};
   const now=new Date();
   const ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const status=document.getElementById('pmStatus').value;
   const method=document.getElementById('pmMethod').value;
   const account=document.getElementById('pmAccount').value.replace(/\D/g,'').slice(0,3);
+  const amount=document.getElementById('pmAmount').value;
+  const date=document.getElementById('pmDate').value;
   payments[editingPayKey][editingPayRoom]={
-    status:document.getElementById('pmStatus').value,
-    date:document.getElementById('pmDate').value,
-    amount:document.getElementById('pmAmount').value,
+    status:status,
+    date:date,
+    amount:amount,
     method:method,
     account:method==='transfer'?account:'',
     note:document.getElementById('pmNote').value,
     updatedAt:ts,
   };
-  sd('rm_payments',payments); closePayModal(); renderPaymentsPage(); toast('✓ 繳費狀態已更新');
+  sd('rm_payments',payments);
+  // ── 現金收款 → 自動存入零用金（用 linkedPayment 綁定，避免重複）
+  syncCashPaymentToPettyCash(editingPayRoom,editingPayKey,status,method,amount,date);
+  closePayModal(); renderPaymentsPage(); toast('✓ 繳費狀態已更新');
+}
+
+// 將現金繳費自動同步為零用金收入；非現金/未繳則移除連動的紀錄
+function syncCashPaymentToPettyCash(roomId,monthKey,status,method,amount,date){
+  const linkKey=`pay:${monthKey}:${roomId}`;
+  // 找出已存在的連動紀錄
+  const existingIdx=pettyCash.findIndex(p=>p.linkedPayment===linkKey);
+  const isCash=method==='cash';
+  const isPaid=status==='paid'||status==='partial';
+  const amt=Number(amount)||0;
+  if(isCash&&isPaid&&amt>0){
+    const tenant=ri(roomId).tenant||'';
+    const y=monthKey.slice(0,4), m=monthKey.slice(4,6);
+    const record={
+      id:existingIdx>=0?pettyCash[existingIdx].id:('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+      type:'income',
+      date:date?date.slice(0,10):new Date().toISOString().slice(0,10),
+      amount:amt,
+      item:`房租 · ${roomId}${tenant?' '+tenant:''} (${y}/${m})${status==='partial'?' 部分':''}`,
+      roomId:roomId,
+      category:'',
+      method:'',
+      note:'💵 現金繳費自動存入',
+      linkedPayment:linkKey,
+      updatedAt:new Date().toISOString(),
+    };
+    if(existingIdx>=0){
+      record.createdAt=pettyCash[existingIdx].createdAt;
+      pettyCash[existingIdx]=record;
+    } else {
+      record.createdAt=new Date().toISOString();
+      pettyCash.push(record);
+    }
+    sd('rm_pettycash',pettyCash);
+  } else if(existingIdx>=0){
+    // 改用匯款/未繳 → 移除連動紀錄
+    pettyCash.splice(existingIdx,1);
+    sd('rm_pettycash',pettyCash);
+  }
 }
 
 // ── CONTRACTS ──
@@ -2628,10 +2673,11 @@ function renderPettyCashPage(){
   // Desktop
   document.getElementById('pcTableBody').innerHTML=filtered.length?filtered.map(e=>{
     const isIn=e.type==='income';
-    return `<tr>
-      <td><button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button></td>
+    const linked=!!e.linkedPayment;
+    return `<tr${linked?' style="background:linear-gradient(90deg,#EBF0E5 0%,transparent 40%)"':''}>
+      <td><button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">${linked?'查看':'編輯'}</button></td>
       <td style="font-size:12px">${e.date||'—'}</td>
-      <td>${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}</td>
+      <td>${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}${linked?'<span class="badge" style="background:var(--primary-light);color:var(--primary-dark);margin-left:4px;font-size:10px" title="來自繳費紀錄自動連動">🔗 連動</span>':''}</td>
       <td>${isIn?'<span style="color:var(--text3)">—</span>':catBadge(e.category)}</td>
       <td>${e.item||'—'}</td>
       <td><strong style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</strong></td>
@@ -2644,17 +2690,19 @@ function renderPettyCashPage(){
   // Mobile
   document.getElementById('pcMobileCards').innerHTML=filtered.length?filtered.map(e=>{
     const isIn=e.type==='income';
-    return `<div class="m-card">
+    const linked=!!e.linkedPayment;
+    return `<div class="m-card"${linked?' style="border-left:3px solid var(--primary)"':''}>
       <div class="m-card-top">
         <div>
           <div class="m-card-room" style="font-size:14px">${e.item||'（無說明）'}</div>
           <div class="m-card-tenant" style="flex-wrap:wrap;gap:4px">
             ${isIn?'<span class="badge" style="background:#E5F0E7;color:#5A8F65">📥 存入</span>':'<span class="badge" style="background:#F8E8E7;color:#B85450">📤 支出</span>'}
+            ${linked?'<span class="badge" style="background:var(--primary-light);color:var(--primary-dark);font-size:10px">🔗 連動</span>':''}
             ${!isIn&&e.category?catBadge(e.category):''}
             <span style="color:var(--text3);font-size:12px">${e.date||'—'}</span>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">編輯</button>
+        <button class="btn btn-primary btn-sm" onclick="openPettyCashModal('${e.id}')">${linked?'查看':'編輯'}</button>
       </div>
       <div class="m-card-grid">
         <div><div class="k">金額</div><div class="v amt" style="color:${isIn?'#5A8F65':'#B85450'}">${isIn?'+':'-'}$${Number(e.amount||0).toLocaleString()}</div></div>
@@ -2680,8 +2728,16 @@ function setPcType(t){
 function openPettyCashModal(id,defaultType){
   editingPcId=id||null;
   const e=id?pettyCash.find(x=>x.id===id):null;
-  document.getElementById('pettyCashModalTitle').textContent=id?'編輯紀錄':(defaultType==='income'?'📥 新增存入':'📤 新增支出');
-  document.getElementById('pcDeleteBtn').style.display=id?'inline-flex':'none';
+  const isLinked=e&&e.linkedPayment;
+  document.getElementById('pettyCashModalTitle').textContent=id?(isLinked?'🔗 連動紀錄（來自繳費）':'編輯紀錄'):(defaultType==='income'?'📥 新增存入':'📤 新增支出');
+  document.getElementById('pcDeleteBtn').style.display=id&&!isLinked?'inline-flex':'none';
+  // 連動紀錄要禁用大部分欄位（避免和繳費紀錄不一致）
+  const fields=['pcDate','pcAmount','pcItem','pcRoomId','pcCategory','pcMethod'];
+  fields.forEach(f=>{ const el=document.getElementById(f); if(el) el.disabled=!!isLinked; });
+  document.getElementById('pcTypeIncome').style.pointerEvents=isLinked?'none':'';
+  document.getElementById('pcTypeExpense').style.pointerEvents=isLinked?'none':'';
+  document.getElementById('pcTypeIncome').style.opacity=isLinked?'.5':'1';
+  document.getElementById('pcTypeExpense').style.opacity=isLinked?'.5':'1';
   const rSel=document.getElementById('pcRoomId');
   rSel.innerHTML='<option value="">-- 無 --</option>'+MANAGED_ROOMS.map(r=>`<option value="${r.id}">${r.id}${ri(r.id).tenant?' ('+ri(r.id).tenant+')':''}</option>`).join('');
   if(e){
