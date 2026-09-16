@@ -1238,8 +1238,17 @@ async function manualSync(){
   await loadFromCloud();
   toast('☁️ 已強制同步');
 }
+// 是否有未上傳的本機變動
+function hasPendingWrites(){
+  return dirtyFields.size>0 || saveTimer!==null;
+}
 async function loadFromCloud(silent){
   if(!APPS_SCRIPT_URL) return;
+  // ⚠️ 若還有未上傳的本機變動，不要覆蓋本地資料，避免資料被舊雲端覆蓋
+  if(silent && hasPendingWrites()){
+    console.log('[Sync] 有未上傳變動，跳過自動拉取');
+    return;
+  }
   if(!silent) setSyncState('loading');
   try{
     const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
@@ -1278,19 +1287,20 @@ async function saveToCloudNow(){
   dirtyFields.clear();
   setSyncState('saving');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses})});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
     const r=await res.json();
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
 }
-// 只上傳有變動的欄位（局部同步）+ 3秒防彈
+// 局部同步 + debounce（減少頻寬）
 let dirtyFields=new Set();
-const SYNC_DEBOUNCE_MS=3000;
+const SYNC_DEBOUNCE_MS=1500;
 function saveToCloud(field){
   if(!APPS_SCRIPT_URL) return;
   if(field) dirtyFields.add(field);
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
+    saveTimer=null;
     if(!dirtyFields.size) return;
     const toSend={};
     dirtyFields.forEach(f=>{
@@ -1300,6 +1310,7 @@ function saveToCloud(field){
       else if(f==='config') toSend.cfg=cfg;
       else if(f==='viewings') toSend.viewings=viewings;
       else if(f==='expenses') toSend.expenses=expenses;
+      else if(f==='pettycash') toSend.pettycash=pettyCash;
     });
     dirtyFields.clear();
     setSyncState('saving');
