@@ -979,6 +979,12 @@ textarea{resize:vertical;min-height:72px;}
           </div>
         </div>
       </div>
+      <!-- 收現金快選：只在「存入」時顯示，且僅列本月未繳/部分繳的房間 -->
+      <div class="form-group" id="pcQuickRentGroup" style="display:none">
+        <label>💵 本月現金收租快選（一鍵記帳 + 更新繳費紀錄）</label>
+        <div id="pcQuickRentBar" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--warning-light);border:1px dashed var(--warning);border-radius:8px;max-height:180px;overflow-y:auto;"></div>
+        <div class="form-hint">點下面任一個房號 → 自動標記繳費、金額帶入、儲存後零用金也會自動連動</div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>日期</label><input id="pcDate" type="date"></div>
         <div class="form-group"><label>金額 (元)</label><input id="pcAmount" type="number" placeholder="500"></div>
@@ -2724,6 +2730,68 @@ function setPcType(t){
   // 只有支出才需要類別 & 付款方式
   document.getElementById('pcCategoryGroup').style.display=t==='expense'?'':'none';
   document.getElementById('pcMethodGroup').style.display=t==='expense'?'':'none';
+  // 存入顯示現金收租快選、支出隱藏
+  const q=document.getElementById('pcQuickRentGroup');
+  if(t==='income' && !editingPcId){ q.style.display=''; renderPcQuickRent(); }
+  else { q.style.display='none'; }
+}
+function renderPcQuickRent(){
+  // 只顯示本月「未繳」或「部分繳」的已出租房間
+  const now=new Date();
+  const monthKey=ym(now.getFullYear(),now.getMonth()+1);
+  const pays=payments[monthKey]||{};
+  const occ=MANAGED_ROOMS.filter(r=>ri(r.id).status==='occupied');
+  const pending=occ.filter(r=>{
+    const ps=pays[r.id]||{};
+    return ps.status!=='paid';
+  });
+  const bar=document.getElementById('pcQuickRentBar');
+  if(!pending.length){
+    bar.innerHTML='<span style="color:var(--text3);font-size:12px;padding:4px 8px">本月都已收齊 🎉</span>';
+    return;
+  }
+  bar.innerHTML=pending.map(r=>{
+    const info=ri(r.id);
+    const ps=pays[r.id]||{};
+    const total=calcTotal(r.id,monthKey);
+    const paid=Number(ps.amount)||0;
+    const owe=Math.max(0,total-paid);
+    const isPartial=ps.status==='partial';
+    return `<div onclick="quickPayCashByRoom('${r.id}','${monthKey}')" style="padding:8px 10px;background:var(--surface);border:1.5px solid ${isPartial?'var(--warning)':'var(--border)'};border-radius:8px;cursor:pointer;text-align:center;transition:all .15s;min-width:90px" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 10px rgba(93,70,49,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="font-weight:700;font-size:13px">${r.id}</div>
+      <div style="font-size:10.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px">${info.tenant||'—'}</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--danger);margin-top:2px">$${owe.toLocaleString()}</div>
+      ${isPartial?'<div style="font-size:9.5px;color:var(--warning)">部分</div>':''}
+    </div>`;
+  }).join('');
+}
+function quickPayCashByRoom(roomId,monthKey){
+  const total=calcTotal(roomId,monthKey);
+  const ps=(payments[monthKey]||{})[roomId]||{};
+  const paidBefore=Number(ps.amount)||0;
+  const owe=Math.max(0,total-paidBefore);
+  const info=ri(roomId);
+  if(!confirm(`確認收現金 $${owe.toLocaleString()}？\n\n房號：${roomId}${info.tenant?' ('+info.tenant+')':''}\n本月應繳：$${total.toLocaleString()}\n${paidBefore?'先前已繳：$'+paidBefore.toLocaleString()+'\n本次收取：$'+owe.toLocaleString():'全額收取：$'+owe.toLocaleString()}\n\n→ 繳費紀錄會標記「已繳 · 現金」\n→ 零用金自動存入 $${total.toLocaleString()}`)) return;
+  // 更新繳費紀錄為已繳 + 現金 + 全額
+  if(!payments[monthKey]) payments[monthKey]={};
+  const now=new Date();
+  const ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  payments[monthKey][roomId]={
+    status:'paid',
+    date:new Date().toISOString().slice(0,16),
+    amount:String(total),
+    method:'cash',
+    account:'',
+    note:ps.note||'',
+    updatedAt:ts,
+  };
+  sd('rm_payments',payments);
+  // 觸發自動連動
+  syncCashPaymentToPettyCash(roomId,monthKey,'paid','cash',total,new Date().toISOString().slice(0,10));
+  closePettyCashModal();
+  renderPettyCashPage();
+  updateSidebar();
+  toast(`✓ ${roomId} 現金收租 $${total.toLocaleString()} · 已自動存入零用金`);
 }
 function openPettyCashModal(id,defaultType){
   editingPcId=id||null;
