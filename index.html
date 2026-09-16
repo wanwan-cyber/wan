@@ -272,6 +272,12 @@ textarea{resize:vertical;min-height:72px;}
 .pdl-danger{color:var(--danger);background:var(--danger-light);}
 @keyframes pulseWarn{0%,100%{box-shadow:0 0 0 0 rgba(214,155,71,.4);}50%{box-shadow:0 0 0 5px rgba(214,155,71,0);}}
 @keyframes pulseDanger{0%,100%{box-shadow:0 0 0 0 rgba(184,84,80,.5);}50%{box-shadow:0 0 0 6px rgba(184,84,80,0);}}
+/* Backfill selector rows */
+.backfill-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;background:var(--surface);transition:background .1s;}
+.backfill-row:hover{background:var(--surface2);}
+.backfill-row:last-child{border-bottom:none;}
+.backfill-row input[type="checkbox"]:checked ~ *{opacity:1;}
+.backfill-row:has(input:not(:checked)){opacity:.55;}
 .pay-amt{font-size:13px;font-weight:600;width:80px;text-align:right;}
 
 /* Contract tag */
@@ -957,6 +963,31 @@ textarea{resize:vertical;min-height:72px;}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closePayModal()">取消</button>
       <button class="btn btn-primary" onclick="savePayment()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backfill Cash Payments Modal -->
+<div class="modal-overlay" id="backfillModal" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>🔄 回溯匯入現金繳費</h3>
+      <button class="modal-close" onclick="document.getElementById('backfillModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px">
+      <div style="font-size:12px;color:var(--text2);background:var(--warning-light);border:1px solid #E5D8C2;border-radius:8px;padding:8px 12px;margin-bottom:12px">
+        下方列出「現金 + 已繳/部分繳」但還沒進零用金的歷史紀錄，勾選要補入的筆數。
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-secondary btn-sm" onclick="toggleAllBackfill(true)">☑ 全選</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleAllBackfill(false)">☐ 全不選</button>
+        <div style="margin-left:auto;font-size:12.5px;color:var(--text2);align-self:center" id="backfillSummary">已選 0 筆</div>
+      </div>
+      <div id="backfillList" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('backfillModal').style.display='none'">取消</button>
+      <button class="btn btn-primary" id="backfillConfirmBtn" onclick="confirmBackfill()">確認匯入</button>
     </div>
   </div>
 </div>
@@ -2869,9 +2900,10 @@ function deletePettyCash(){
   renderPettyCashPage();
   toast('🗑 已刪除');
 }
-// 一鍵回溯：把所有歷史「現金 + 已繳/部分繳」的繳費紀錄，補進零用金為連動收入
+// 一鍵回溯（可挑選）：把歷史「現金 + 已繳/部分繳」但沒連動的繳費紀錄列出，讓使用者勾選
+let backfillCandidates=[];
 function backfillCashPayments(){
-  const toAdd=[];
+  backfillCandidates=[];
   const existingLinks=new Set(pettyCash.filter(p=>p.linkedPayment).map(p=>p.linkedPayment));
   Object.keys(payments).forEach(monthKey=>{
     Object.keys(payments[monthKey]).forEach(roomId=>{
@@ -2883,17 +2915,63 @@ function backfillCashPayments(){
       const total=calcTotal(roomId,monthKey);
       const amt=Number(ps.amount)||total;
       if(amt<=0) return;
-      toAdd.push({monthKey,roomId,linkKey,amt,ps});
+      backfillCandidates.push({monthKey,roomId,linkKey,amt,ps,total});
     });
   });
-  if(!toAdd.length){alert('沒有需要補入的紀錄，所有現金繳費都已同步 ✓');return;}
-  if(!confirm(`偵測到 ${toAdd.length} 筆歷史現金繳費尚未存入零用金：\n\n${toAdd.slice(0,10).map(x=>`• ${x.monthKey.slice(0,4)}/${x.monthKey.slice(4,6)} · ${x.roomId} · $${x.amt.toLocaleString()}`).join('\n')}${toAdd.length>10?`\n... 共 ${toAdd.length} 筆`:''}\n\n要一次補進零用金嗎？`)) return;
+  if(!backfillCandidates.length){alert('沒有需要補入的紀錄，所有現金繳費都已同步 ✓');return;}
+  // 依日期排序（新到舊）
+  backfillCandidates.sort((a,b)=>b.monthKey.localeCompare(a.monthKey)||a.roomId.localeCompare(b.roomId));
+  renderBackfillModal();
+  document.getElementById('backfillModal').style.display='flex';
+}
+
+function renderBackfillModal(){
+  const bd=document.getElementById('backfillList');
+  bd.innerHTML=backfillCandidates.map((x,i)=>{
+    const info=ri(x.roomId);
+    const y=x.monthKey.slice(0,4), m=x.monthKey.slice(4,6);
+    const isPartial=x.ps.status==='partial';
+    return `<label class="backfill-row" for="bf-${i}">
+      <input type="checkbox" id="bf-${i}" checked style="width:18px;height:18px;cursor:pointer;flex-shrink:0" onchange="updateBackfillTotal()">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px">${x.roomId} · ${info.tenant||'—'}</div>
+        <div style="font-size:11px;color:var(--text2)">${y}/${m} · ${x.ps.date?x.ps.date.slice(0,10):'無日期'}${isPartial?' · <span style="color:var(--warning)">部分繳</span>':''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;color:var(--success);font-size:14px">+$${x.amt.toLocaleString()}</div>
+        ${x.amt<x.total?`<div style="font-size:10.5px;color:var(--text3)">應繳$${x.total.toLocaleString()}</div>`:''}
+      </div>
+    </label>`;
+  }).join('');
+  updateBackfillTotal();
+}
+
+function updateBackfillTotal(){
+  let count=0, sum=0;
+  backfillCandidates.forEach((x,i)=>{
+    if(document.getElementById(`bf-${i}`)?.checked){ count++; sum+=x.amt; }
+  });
+  document.getElementById('backfillSummary').innerHTML=`已選 <strong>${count}</strong> 筆 · 合計 <strong style="color:var(--success)">+$${sum.toLocaleString()}</strong>`;
+  document.getElementById('backfillConfirmBtn').disabled=count===0;
+}
+
+function toggleAllBackfill(check){
+  backfillCandidates.forEach((_,i)=>{
+    const c=document.getElementById(`bf-${i}`);
+    if(c) c.checked=check;
+  });
+  updateBackfillTotal();
+}
+
+function confirmBackfill(){
   const now=new Date().toISOString();
-  toAdd.forEach(x=>{
+  let added=0;
+  backfillCandidates.forEach((x,i)=>{
+    if(!document.getElementById(`bf-${i}`)?.checked) return;
     const tenant=ri(x.roomId).tenant||'';
     const y=x.monthKey.slice(0,4), m=x.monthKey.slice(4,6);
     pettyCash.push({
-      id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'_'+i,
       type:'income',
       date:x.ps.date?x.ps.date.slice(0,10):`${y}-${m}-01`,
       amount:x.amt,
@@ -2906,10 +2984,14 @@ function backfillCashPayments(){
       createdAt:now,
       updatedAt:now,
     });
+    added++;
   });
-  sd('rm_pettycash',pettyCash);
-  renderPettyCashPage();
-  toast(`✓ 已補入 ${toAdd.length} 筆現金收租`);
+  if(added){
+    sd('rm_pettycash',pettyCash);
+    renderPettyCashPage();
+    toast(`✓ 已補入 ${added} 筆現金收租`);
+  }
+  document.getElementById('backfillModal').style.display='none';
 }
 
 function exportPettyCashCSV(){
