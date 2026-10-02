@@ -187,6 +187,11 @@ textarea{resize:vertical;min-height:72px;}
 .month-picker{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .month-picker select{width:auto;padding:6px 10px;font-size:13px;}
 .mp-label{font-size:12.5px;color:var(--text2);font-weight:600;}
+.mp-nav{background:var(--surface);border:1px solid var(--border);color:var(--primary);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;transition:all .12s;}
+.mp-nav:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-1px);}
+.mp-nav:active{transform:translateY(0);}
+.mp-today{background:var(--warning-light);border:1px solid var(--border);color:var(--wood-dark);height:28px;padding:0 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;transition:all .12s;}
+.mp-today:hover{background:var(--warning);color:#fff;border-color:var(--warning);transform:translateY(-1px);}
 
 /* Meter cells */
 .meter-cell{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:13px;}
@@ -547,9 +552,11 @@ textarea{resize:vertical;min-height:72px;}
         <div class="card-header">
           <h3>⚡ 電表抄表登記</h3>
           <div class="month-picker">
-            <span class="mp-label">月份：</span>
+            <button class="mp-nav" onclick="shiftMonth('meter',-1)" title="上個月">◀</button>
             <select id="meterYear"></select>年
             <select id="meterMonth"></select>月
+            <button class="mp-nav" onclick="shiftMonth('meter',1)" title="下個月">▶</button>
+            <button class="mp-today" onclick="jumpToday('meter')" title="跳回本月">本月</button>
             <button class="btn btn-primary btn-sm" onclick="saveMeterData()">💾 儲存</button>
           </div>
         </div>
@@ -568,9 +575,11 @@ textarea{resize:vertical;min-height:72px;}
           <h3>繳費明細</h3>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <div class="month-picker">
-              <span class="mp-label">月份：</span>
+              <button class="mp-nav" onclick="shiftMonth('billing',-1)" title="上個月">◀</button>
               <select id="billingYear"></select>年
               <select id="billingMonth"></select>月
+              <button class="mp-nav" onclick="shiftMonth('billing',1)" title="下個月">▶</button>
+              <button class="mp-today" onclick="jumpToday('billing')" title="跳回本月">本月</button>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="exportBillingCSV()">📥 匯出CSV</button>
           </div>
@@ -597,9 +606,11 @@ textarea{resize:vertical;min-height:72px;}
         <div class="card-header">
           <h3>繳費紀錄</h3>
           <div class="month-picker">
-            <span class="mp-label">月份：</span>
+            <button class="mp-nav" onclick="shiftMonth('pay',-1)" title="上個月">◀</button>
             <select id="payYear"></select>年
             <select id="payMonth"></select>月
+            <button class="mp-nav" onclick="shiftMonth('pay',1)" title="下個月">▶</button>
+            <button class="mp-today" onclick="jumpToday('pay')" title="跳回本月">本月</button>
           </div>
         </div>
         <div class="card-body p0">
@@ -1514,6 +1525,28 @@ function fillYM(yId,mId,y,m,cb){
   for(let i=curY-2;i<=curY+1;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i==y)o.selected=true;ys.appendChild(o);}
   for(let i=1;i<=12;i++){const o=document.createElement('option');o.value=i;o.textContent=String(i).padStart(2,'0');if(i==m)o.selected=true;ms.appendChild(o);}
   if(cb){ys.onchange=cb;ms.onchange=cb;}
+}
+// 快速月份切換（◀ ▶）用於 meter / billing / pay 頁
+function shiftMonth(prefix,delta){
+  const yId=prefix==='meter'?'meterYear':prefix==='billing'?'billingYear':'payYear';
+  const mId=prefix==='meter'?'meterMonth':prefix==='billing'?'billingMonth':'payMonth';
+  const ys=document.getElementById(yId),ms=document.getElementById(mId);
+  if(!ys||!ms) return;
+  let y=parseInt(ys.value),m=parseInt(ms.value)+delta;
+  if(m<1){m=12;y--;} else if(m>12){m=1;y++;}
+  // Expand year options if needed
+  let found=false;
+  Array.from(ys.options).forEach(o=>{if(parseInt(o.value)===y) found=true;});
+  if(!found){const o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o);Array.from(ys.options).sort((a,b)=>a.value-b.value).forEach(o=>ys.appendChild(o));}
+  ys.value=y; ms.value=m;
+  ys.dispatchEvent(new Event('change'));
+}
+function jumpToday(prefix){
+  const yId=prefix==='meter'?'meterYear':prefix==='billing'?'billingYear':'payYear';
+  const mId=prefix==='meter'?'meterMonth':prefix==='billing'?'billingMonth':'payMonth';
+  document.getElementById(yId).value=curY;
+  document.getElementById(mId).value=curM;
+  document.getElementById(yId).dispatchEvent(new Event('change'));
 }
 
 // ── OVERVIEW ──
