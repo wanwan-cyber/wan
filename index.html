@@ -1412,6 +1412,28 @@ document.getElementById('topbarDate').textContent=
   `${curY}/${String(curM).padStart(2,'0')}/${String(NOW.getDate()).padStart(2,'0')}`;
 
 // ── CONTRACT HELPERS ──
+// ★ 收款日判斷（修正跨月）：
+//   1. 本月還沒繳 → 看本月收款日：前一天=明天抄表、當天=今天收款、過了=逾期 N 天（不會隔天就消失）
+//   2. 本月已繳 → 看「下個月」那一筆：月初收款的房客，月底前一天也會提醒明天抄表
+//   收款日超過該月天數（例如 31 號遇到 11 月）→ 自動當成月底
+function dueStatus(roomId,pd){
+  if(!pd) return null;
+  const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate());
+  const dueOf=(y,m)=>new Date(y,m-1,Math.min(pd,new Date(y,m,0).getDate()));
+  const dayDiff=(a)=>Math.round((a-today)/86400000);
+  const y=today.getFullYear(), m=today.getMonth()+1;
+  const keyThis=ym(y,m);
+  const paidThis=((payments[keyThis]||{})[roomId]||{}).status==='paid';
+  if(!paidThis){
+    const diff=dayDiff(dueOf(y,m));
+    return {key:keyThis, diff, paid:false};
+  }
+  const ny=m===12?y+1:y, nm=m===12?1:m+1;
+  const keyNext=ym(ny,nm);
+  const paidNext=((payments[keyNext]||{})[roomId]||{}).status==='paid';
+  return {key:keyNext, diff:dayDiff(dueOf(ny,nm)), paid:paidNext, thisPaid:true};
+}
+
 function daysUntil(s){
   if(!s) return null;
   const d=new Date(s); d.setHours(0,0,0,0);
@@ -1582,12 +1604,9 @@ function renderOverview(){
   const curDay=today.getDate();
   const meterTomorrow=[], dueToday=[], overdueList=[];
   occ.forEach(r=>{
-    const info=ri(r.id),ps=pays[r.id]||{};
-    if(ps.status==='paid') return;
-    const pd=info.paymentDay; if(!pd) return;
-    let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
-    if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
-    const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
+    const info=ri(r.id);
+    const ds=dueStatus(r.id,info.paymentDay); if(!ds||ds.paid) return;
+    const diff=ds.diff;
     if(diff===1) meterTomorrow.push(r.id);
     else if(diff===0) dueToday.push(r.id);
     else if(diff<0) overdueList.push(`${r.id}(${-diff}天)`);
@@ -1622,13 +1641,12 @@ function renderOverview(){
     const pd=info.paymentDay;
     let dueHtml='<span style="color:var(--text3);font-size:11px">未設收款日</span>';
     if(pd){
-      const today=new Date();
-      const curDay=today.getDate();
-      let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
-      if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
-      const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
+      const ds=dueStatus(r.id,pd);
+      const diff=ds.diff;
       let label='',cls='pay-circle-normal';
-      if(p.status==='paid'){
+      if(ds.thisPaid && !ds.paid && diff===1){
+        cls='pay-circle-warn'; label='📖 明天抄表';
+      } else if(ds.thisPaid || p.status==='paid'){
         cls='pay-circle-paid'; label='已繳';
       } else if(diff<0){
         cls='pay-circle-danger'; label=`逾期 ${-diff} 天`;
