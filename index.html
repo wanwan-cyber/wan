@@ -1227,6 +1227,38 @@ function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud(CLOUD_KEY
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby2W8o6pKMirEuYbqKB8SOoeL2BB_7HB0n3yLH0xCIFcUS4dJ7wXSZJJZjBRqh-CD9qbQ/exec';
 let syncState='idle', saveTimer=null;
 const SYNC_TIMEOUT_MS=15000; // 15 秒逾時
+
+// ── ★ 雲端密碼：每台裝置輸入一次，只存在這台裝置，不會寫進 GitHub ──
+const KEY_STORE='rm_cloud_key';
+function getCloudKey(){try{return localStorage.getItem(KEY_STORE)||'';}catch(e){return '';}}
+function setCloudKey(k){try{if(k)localStorage.setItem(KEY_STORE,k);else localStorage.removeItem(KEY_STORE);}catch(e){}}
+let _askingKey=false;
+function askCloudKey(msg){
+  if(_askingKey) return; _askingKey=true;
+  setSyncState('error');
+  const ov=document.createElement('div');
+  ov.id='cloudKeyOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(45,42,36,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML=`<form id="cloudKeyForm" style="background:var(--bg,#F8F4ED);border:1px solid var(--border,#E5DCC9);border-radius:14px;padding:22px 20px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
+      <div style="font-size:17px;font-weight:700;color:var(--text,#2D2A24)">🔒 輸入雲端密碼</div>
+      <div style="font-size:13px;color:var(--text2,#5C544A);line-height:1.6">${msg||'這台裝置第一次連線，請輸入密碼。輸入一次就會記住。'}</div>
+      <input id="cloudKeyInput" type="password" autocomplete="current-password" placeholder="密碼" style="font-size:16px;padding:10px 12px;border:1px solid var(--border,#E5DCC9);border-radius:8px;background:#fff;color:#2D2A24">
+      <button type="submit" style="font-size:15px;font-weight:600;padding:10px;border:0;border-radius:8px;background:var(--primary,#4F6849);color:#fff;cursor:pointer">登入</button>
+    </form>`;
+  document.body.appendChild(ov);
+  const inp=document.getElementById('cloudKeyInput');
+  setTimeout(()=>inp&&inp.focus(),50);
+  document.getElementById('cloudKeyForm').addEventListener('submit',ev=>{
+    ev.preventDefault();
+    const k=(inp.value||'').trim(); if(!k) return;
+    setCloudKey(k); ov.remove(); _askingKey=false;
+    loadFromCloud();
+  });
+}
+function handleAuthFail(){
+  setCloudKey('');
+  askCloudKey('密碼不對，或密碼已經改過，請重新輸入。');
+}
 function setSyncState(s){
   syncState=s;
   const el=document.getElementById('syncBadge'); if(!el) return;
@@ -1260,10 +1292,15 @@ async function loadFromCloud(silent){
     console.log('[Sync] 有未上傳變動，跳過自動拉取');
     return;
   }
+  const key=getCloudKey();
+  if(!key){ if(!silent) askCloudKey(); return; }
   if(!silent) setSyncState('loading');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({key,action:'load'})});
     const data=await res.json();
+    // ★ 沒通過密碼 / 雲端程式還沒更新 → 停在這裡，絕不拿本機資料去覆蓋雲端
+    if(data&&data.error==='auth'){ handleAuthFail(); return; }
+    if(!data||data.loaded!==true){ console.warn('[Sync] 雲端回應不正確（Apps Script 是否已更新？）',data); setSyncState('error'); return; }
     const cloudHasRooms=data.rooms&&Object.keys(data.rooms).length>0;
     const localHasData=Object.values(rooms).some(r=>r.tenant||r.status==='occupied');
     if(cloudHasRooms){
@@ -1294,12 +1331,15 @@ async function loadFromCloud(silent){
 // 立即上傳全部（初次連線用、手動同步用）
 async function saveToCloudNow(){
   if(!APPS_SCRIPT_URL) return;
+  const key=getCloudKey();
+  if(!key){ askCloudKey(); return; }
   if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
   dirtyFields.clear();
   setSyncState('saving');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({key,rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
     const r=await res.json();
+    if(r&&r.error==='auth'){ handleAuthFail(); return; }
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
 }
@@ -1323,11 +1363,15 @@ function saveToCloud(field){
       else if(f==='expenses') toSend.expenses=expenses;
       else if(f==='pettycash') toSend.pettycash=pettyCash;
     });
+    const key=getCloudKey();
+    if(!key){ askCloudKey(); return; }
+    toSend.key=key;
     dirtyFields.clear();
     setSyncState('saving');
     try{
       const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(toSend)});
       const r=await res.json();
+      if(r&&r.error==='auth'){ handleAuthFail(); return; }
       setSyncState(r.ok?'saved':'error');
     }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
   },SYNC_DEBOUNCE_MS);
