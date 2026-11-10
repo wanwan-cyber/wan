@@ -1004,6 +1004,31 @@ textarea{resize:vertical;min-height:72px;}
   </div>
 </div>
 
+<!-- Undo Backfill Modal -->
+<div class="modal-overlay" id="undoModal" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>↩️ 撤銷回溯匯入</h3>
+      <button class="modal-close" onclick="document.getElementById('undoModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px">
+      <div style="font-size:12px;color:var(--text2);background:var(--danger-light);border:1px solid #E5B5B0;border-radius:8px;padding:8px 12px;margin-bottom:12px">
+        下方列出所有「回溯匯入」的零用金紀錄。勾選要撤銷的，繳費紀錄本身不受影響。
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-secondary btn-sm" onclick="toggleAllUndo(true)">☑ 全選</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleAllUndo(false)">☐ 全不選</button>
+        <div style="margin-left:auto;font-size:12.5px;color:var(--text2);align-self:center" id="undoSummary">已選 0 筆</div>
+      </div>
+      <div id="undoList" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('undoModal').style.display='none'">取消</button>
+      <button class="btn btn-danger" id="undoConfirmBtn" onclick="confirmUndo()">確認撤銷</button>
+    </div>
+  </div>
+</div>
+
 <!-- Petty Cash Modal -->
 <div class="modal-overlay" id="pettyCashModal" style="display:none">
   <div class="modal">
@@ -1227,7 +1252,8 @@ function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud(CLOUD_KEY
 // ── CLOUD SYNC (Google Sheets via Apps Script) ──
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby2W8o6pKMirEuYbqKB8SOoeL2BB_7HB0n3yLH0xCIFcUS4dJ7wXSZJJZjBRqh-CD9qbQ/exec';
 let syncState='idle', saveTimer=null;
-const SYNC_TIMEOUT_MS=15000; // 15 秒逾時
+const SYNC_TIMEOUT_MS=30000; // 30 秒逾時（Apps Script 冷啟動+大資料量）
+const SYNC_RETRY_DELAYS=[1500,4000]; // 失敗自動重試間隔
 function setSyncState(s){
   syncState=s;
   const el=document.getElementById('syncBadge'); if(!el) return;
@@ -1243,6 +1269,22 @@ async function fetchWithTimeout(url,opts={},ms=SYNC_TIMEOUT_MS){
     const res=await fetch(url,{...opts,signal:ctl.signal});
     return res;
   } finally { clearTimeout(timer); }
+}
+// 帶重試的 fetch（遇到超時或錯誤會自動退避重試）
+async function fetchWithRetry(url,opts={}){
+  const attempts=[0,...SYNC_RETRY_DELAYS];
+  let lastErr=null;
+  for(let i=0;i<attempts.length;i++){
+    if(attempts[i]>0) await new Promise(r=>setTimeout(r,attempts[i]));
+    try{
+      const res=await fetchWithTimeout(url,opts);
+      return res;
+    }catch(e){
+      lastErr=e;
+      console.warn(`[Sync] 第 ${i+1} 次嘗試失敗：${e.message}`);
+    }
+  }
+  throw lastErr||new Error('fetch failed');
 }
 // 手動觸發完整同步：先上傳本機 → 再從雲端拉最新
 async function manualSync(){
@@ -1263,7 +1305,7 @@ async function loadFromCloud(silent){
   }
   if(!silent) setSyncState('loading');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
+    const res=await fetchWithRetry(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
     const data=await res.json();
     const cloudHasRooms=data.rooms&&Object.keys(data.rooms).length>0;
     const localHasData=Object.values(rooms).some(r=>r.tenant||r.status==='occupied');
@@ -1299,7 +1341,7 @@ async function saveToCloudNow(){
   dirtyFields.clear();
   setSyncState('saving');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
+    const res=await fetchWithRetry(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
     const r=await res.json();
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
@@ -1327,7 +1369,7 @@ function saveToCloud(field){
     dirtyFields.clear();
     setSyncState('saving');
     try{
-      const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(toSend)});
+      const res=await fetchWithRetry(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(toSend)});
       const r=await res.json();
       setSyncState(r.ok?'saved':'error');
     }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
@@ -3048,33 +3090,80 @@ function confirmBackfill(){
   document.getElementById('backfillModal').style.display='none';
 }
 
+// 回溯匯入的辨識規則：note 標為「💵 現金繳費（回溯匯入）」
+function isBackfilledEntry(p){ return p.note==='💵 現金繳費（回溯匯入）'; }
+
 function updateUndoBackfillBtn(){
   const btn=document.getElementById('undoBackfillBtn');
   if(!btn) return;
-  // 只保留還存在於 pettyCash 中的 id（排除已被手動刪除的）
-  const pcIds=new Set(pettyCash.map(p=>p.id));
-  lastBackfillIds=lastBackfillIds.filter(id=>pcIds.has(id));
-  localStorage.setItem('rm_lastBackfillIds',JSON.stringify(lastBackfillIds));
-  if(lastBackfillIds.length){
+  const backfilled=pettyCash.filter(isBackfilledEntry);
+  if(backfilled.length){
     btn.style.display='';
-    btn.textContent=`↩️ 撤銷上次匯入 (${lastBackfillIds.length})`;
+    btn.textContent=`↩️ 撤銷回溯匯入 (${backfilled.length})`;
   } else {
     btn.style.display='none';
   }
 }
 
+// 打開撤銷選單：列出所有回溯匯入的紀錄，讓使用者勾選要撤銷哪幾筆
+let undoCandidates=[];
 function undoLastBackfill(){
-  if(!lastBackfillIds.length){toast('⚠️ 沒有可撤銷的匯入');return;}
-  const count=lastBackfillIds.length;
-  if(!confirm(`確定撤銷上次匯入的 ${count} 筆零用金紀錄嗎？\n\n此動作會將這 ${count} 筆從零用金移除\n（繳費紀錄本身不受影響）`)) return;
-  const idSet=new Set(lastBackfillIds);
-  pettyCash=pettyCash.filter(p=>!idSet.has(p.id));
+  undoCandidates=pettyCash.filter(isBackfilledEntry).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!undoCandidates.length){toast('⚠️ 沒有可撤銷的匯入紀錄');return;}
+  renderUndoModal();
+  document.getElementById('undoModal').style.display='flex';
+}
+
+function renderUndoModal(){
+  const bd=document.getElementById('undoList');
+  bd.innerHTML=undoCandidates.map((x,i)=>{
+    return `<label class="backfill-row" for="ub-${i}">
+      <input type="checkbox" id="ub-${i}" checked style="width:18px;height:18px;cursor:pointer;flex-shrink:0" onchange="updateUndoTotal()">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px">${x.item||'—'}</div>
+        <div style="font-size:11px;color:var(--text2)">${x.date||'無日期'} · 房號 ${x.roomId||'—'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;color:var(--success);font-size:14px">+$${Number(x.amount||0).toLocaleString()}</div>
+      </div>
+    </label>`;
+  }).join('');
+  updateUndoTotal();
+}
+
+function updateUndoTotal(){
+  let count=0, sum=0;
+  undoCandidates.forEach((x,i)=>{
+    if(document.getElementById(`ub-${i}`)?.checked){ count++; sum+=Number(x.amount||0); }
+  });
+  document.getElementById('undoSummary').innerHTML=`已選 <strong>${count}</strong> 筆 · 合計 <strong style="color:var(--danger)">-$${sum.toLocaleString()}</strong>`;
+  document.getElementById('undoConfirmBtn').disabled=count===0;
+}
+
+function toggleAllUndo(check){
+  undoCandidates.forEach((_,i)=>{
+    const c=document.getElementById(`ub-${i}`);
+    if(c) c.checked=check;
+  });
+  updateUndoTotal();
+}
+
+function confirmUndo(){
+  const toRemove=new Set();
+  undoCandidates.forEach((x,i)=>{
+    if(document.getElementById(`ub-${i}`)?.checked) toRemove.add(x.id);
+  });
+  if(!toRemove.size){return;}
+  const count=toRemove.size;
+  pettyCash=pettyCash.filter(p=>!toRemove.has(p.id));
+  // 同步清掉 lastBackfillIds
+  lastBackfillIds=lastBackfillIds.filter(id=>!toRemove.has(id));
+  localStorage.setItem('rm_lastBackfillIds',JSON.stringify(lastBackfillIds));
   sd('rm_pettycash',pettyCash);
-  lastBackfillIds=[];
-  localStorage.setItem('rm_lastBackfillIds','[]');
   renderPettyCashPage();
   updateUndoBackfillBtn();
-  toast(`↩️ 已撤銷 ${count} 筆匯入`);
+  document.getElementById('undoModal').style.display='none';
+  toast(`↩️ 已撤銷 ${count} 筆回溯匯入`);
 }
 
 function exportPettyCashCSV(){
