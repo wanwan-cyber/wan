@@ -2795,6 +2795,8 @@ function renderPettyCashPage(){
       </div>
     </div>`;
   }).join(''):'<div class="empty-state"><div class="es-icon">👛</div><p>尚無紀錄</p></div>';
+  // 檢查撤銷鈕是否該顯示（頁面載入後也會呼叫）
+  updateUndoBackfillBtn();
 }
 
 let editingPcId=null;
@@ -3008,7 +3010,7 @@ function toggleAllBackfill(check){
   updateBackfillTotal();
 }
 
-let lastBackfillIds=[]; // 記錄上次匯入的 id，用於撤銷
+let lastBackfillIds=JSON.parse(localStorage.getItem('rm_lastBackfillIds')||'[]'); // 記錄上次匯入的 id，用於撤銷（持久化）
 function confirmBackfill(){
   const now=new Date().toISOString();
   let added=0;
@@ -3037,6 +3039,7 @@ function confirmBackfill(){
   });
   if(added){
     lastBackfillIds=addedIds;
+    localStorage.setItem('rm_lastBackfillIds',JSON.stringify(lastBackfillIds));
     sd('rm_pettycash',pettyCash);
     renderPettyCashPage();
     updateUndoBackfillBtn();
@@ -3048,6 +3051,10 @@ function confirmBackfill(){
 function updateUndoBackfillBtn(){
   const btn=document.getElementById('undoBackfillBtn');
   if(!btn) return;
+  // 只保留還存在於 pettyCash 中的 id（排除已被手動刪除的）
+  const pcIds=new Set(pettyCash.map(p=>p.id));
+  lastBackfillIds=lastBackfillIds.filter(id=>pcIds.has(id));
+  localStorage.setItem('rm_lastBackfillIds',JSON.stringify(lastBackfillIds));
   if(lastBackfillIds.length){
     btn.style.display='';
     btn.textContent=`↩️ 撤銷上次匯入 (${lastBackfillIds.length})`;
@@ -3064,6 +3071,7 @@ function undoLastBackfill(){
   pettyCash=pettyCash.filter(p=>!idSet.has(p.id));
   sd('rm_pettycash',pettyCash);
   lastBackfillIds=[];
+  localStorage.setItem('rm_lastBackfillIds','[]');
   renderPettyCashPage();
   updateUndoBackfillBtn();
   toast(`↩️ 已撤銷 ${count} 筆匯入`);
