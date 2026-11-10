@@ -704,6 +704,7 @@ textarea{resize:vertical;min-height:72px;}
               <option value="other">📝 其他</option>
             </select>
             <button class="btn btn-secondary btn-sm" onclick="backfillCashPayments()" style="background:#FBF1DE;color:#8C6F4F;border-color:#E5D8C2">🔄 回溯匯入舊繳費</button>
+            <button class="btn btn-secondary btn-sm" id="undoBackfillBtn" onclick="undoLastBackfill()" style="display:none;background:#F8E8E7;color:#B85450;border-color:#E5B5B0">↩️ 撤銷上次匯入</button>
             <button class="btn btn-secondary btn-sm" onclick="exportPettyCashCSV()">📥 匯出CSV</button>
           </div>
         </div>
@@ -1227,38 +1228,6 @@ function sd(k,v){localStorage.setItem(k,JSON.stringify(v));saveToCloud(CLOUD_KEY
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby2W8o6pKMirEuYbqKB8SOoeL2BB_7HB0n3yLH0xCIFcUS4dJ7wXSZJJZjBRqh-CD9qbQ/exec';
 let syncState='idle', saveTimer=null;
 const SYNC_TIMEOUT_MS=15000; // 15 秒逾時
-
-// ── ★ 雲端密碼：每台裝置輸入一次，只存在這台裝置，不會寫進 GitHub ──
-const KEY_STORE='rm_cloud_key';
-function getCloudKey(){try{return localStorage.getItem(KEY_STORE)||'';}catch(e){return '';}}
-function setCloudKey(k){try{if(k)localStorage.setItem(KEY_STORE,k);else localStorage.removeItem(KEY_STORE);}catch(e){}}
-let _askingKey=false;
-function askCloudKey(msg){
-  if(_askingKey) return; _askingKey=true;
-  setSyncState('error');
-  const ov=document.createElement('div');
-  ov.id='cloudKeyOverlay';
-  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(45,42,36,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
-  ov.innerHTML=`<form id="cloudKeyForm" style="background:var(--bg,#F8F4ED);border:1px solid var(--border,#E5DCC9);border-radius:14px;padding:22px 20px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
-      <div style="font-size:17px;font-weight:700;color:var(--text,#2D2A24)">🔒 輸入雲端密碼</div>
-      <div style="font-size:13px;color:var(--text2,#5C544A);line-height:1.6">${msg||'這台裝置第一次連線，請輸入密碼。輸入一次就會記住。'}</div>
-      <input id="cloudKeyInput" type="password" autocomplete="current-password" placeholder="密碼" style="font-size:16px;padding:10px 12px;border:1px solid var(--border,#E5DCC9);border-radius:8px;background:#fff;color:#2D2A24">
-      <button type="submit" style="font-size:15px;font-weight:600;padding:10px;border:0;border-radius:8px;background:var(--primary,#4F6849);color:#fff;cursor:pointer">登入</button>
-    </form>`;
-  document.body.appendChild(ov);
-  const inp=document.getElementById('cloudKeyInput');
-  setTimeout(()=>inp&&inp.focus(),50);
-  document.getElementById('cloudKeyForm').addEventListener('submit',ev=>{
-    ev.preventDefault();
-    const k=(inp.value||'').trim(); if(!k) return;
-    setCloudKey(k); ov.remove(); _askingKey=false;
-    loadFromCloud();
-  });
-}
-function handleAuthFail(){
-  setCloudKey('');
-  askCloudKey('密碼不對，或密碼已經改過，請重新輸入。');
-}
 function setSyncState(s){
   syncState=s;
   const el=document.getElementById('syncBadge'); if(!el) return;
@@ -1292,15 +1261,10 @@ async function loadFromCloud(silent){
     console.log('[Sync] 有未上傳變動，跳過自動拉取');
     return;
   }
-  const key=getCloudKey();
-  if(!key){ if(!silent) askCloudKey(); return; }
   if(!silent) setSyncState('loading');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({key,action:'load'})});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:"GET",redirect:"follow"});
     const data=await res.json();
-    // ★ 沒通過密碼 / 雲端程式還沒更新 → 停在這裡，絕不拿本機資料去覆蓋雲端
-    if(data&&data.error==='auth'){ handleAuthFail(); return; }
-    if(!data||data.loaded!==true){ console.warn('[Sync] 雲端回應不正確（Apps Script 是否已更新？）',data); setSyncState('error'); return; }
     const cloudHasRooms=data.rooms&&Object.keys(data.rooms).length>0;
     const localHasData=Object.values(rooms).some(r=>r.tenant||r.status==='occupied');
     if(cloudHasRooms){
@@ -1331,15 +1295,12 @@ async function loadFromCloud(silent){
 // 立即上傳全部（初次連線用、手動同步用）
 async function saveToCloudNow(){
   if(!APPS_SCRIPT_URL) return;
-  const key=getCloudKey();
-  if(!key){ askCloudKey(); return; }
   if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
   dirtyFields.clear();
   setSyncState('saving');
   try{
-    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({key,rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
+    const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({rooms,meters,payments,cfg,viewings,expenses,pettycash:pettyCash})});
     const r=await res.json();
-    if(r&&r.error==='auth'){ handleAuthFail(); return; }
     setSyncState(r.ok?'saved':'error');
   }catch(e){console.error('saveToCloudNow error',e);setSyncState('error');}
 }
@@ -1363,15 +1324,11 @@ function saveToCloud(field){
       else if(f==='expenses') toSend.expenses=expenses;
       else if(f==='pettycash') toSend.pettycash=pettyCash;
     });
-    const key=getCloudKey();
-    if(!key){ askCloudKey(); return; }
-    toSend.key=key;
     dirtyFields.clear();
     setSyncState('saving');
     try{
       const res=await fetchWithTimeout(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(toSend)});
       const r=await res.json();
-      if(r&&r.error==='auth'){ handleAuthFail(); return; }
       setSyncState(r.ok?'saved':'error');
     }catch(e){console.error('saveToCloud error',e);setSyncState('error');}
   },SYNC_DEBOUNCE_MS);
@@ -1456,28 +1413,6 @@ document.getElementById('topbarDate').textContent=
   `${curY}/${String(curM).padStart(2,'0')}/${String(NOW.getDate()).padStart(2,'0')}`;
 
 // ── CONTRACT HELPERS ──
-// ★ 收款日判斷（修正跨月）：
-//   1. 本月還沒繳 → 看本月收款日：前一天=明天抄表、當天=今天收款、過了=逾期 N 天（不會隔天就消失）
-//   2. 本月已繳 → 看「下個月」那一筆：月初收款的房客，月底前一天也會提醒明天抄表
-//   收款日超過該月天數（例如 31 號遇到 11 月）→ 自動當成月底
-function dueStatus(roomId,pd){
-  if(!pd) return null;
-  const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate());
-  const dueOf=(y,m)=>new Date(y,m-1,Math.min(pd,new Date(y,m,0).getDate()));
-  const dayDiff=(a)=>Math.round((a-today)/86400000);
-  const y=today.getFullYear(), m=today.getMonth()+1;
-  const keyThis=ym(y,m);
-  const paidThis=((payments[keyThis]||{})[roomId]||{}).status==='paid';
-  if(!paidThis){
-    const diff=dayDiff(dueOf(y,m));
-    return {key:keyThis, diff, paid:false};
-  }
-  const ny=m===12?y+1:y, nm=m===12?1:m+1;
-  const keyNext=ym(ny,nm);
-  const paidNext=((payments[keyNext]||{})[roomId]||{}).status==='paid';
-  return {key:keyNext, diff:dayDiff(dueOf(ny,nm)), paid:paidNext, thisPaid:true};
-}
-
 function daysUntil(s){
   if(!s) return null;
   const d=new Date(s); d.setHours(0,0,0,0);
@@ -1648,9 +1583,12 @@ function renderOverview(){
   const curDay=today.getDate();
   const meterTomorrow=[], dueToday=[], overdueList=[];
   occ.forEach(r=>{
-    const info=ri(r.id);
-    const ds=dueStatus(r.id,info.paymentDay); if(!ds||ds.paid) return;
-    const diff=ds.diff;
+    const info=ri(r.id),ps=pays[r.id]||{};
+    if(ps.status==='paid') return;
+    const pd=info.paymentDay; if(!pd) return;
+    let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
+    if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
+    const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
     if(diff===1) meterTomorrow.push(r.id);
     else if(diff===0) dueToday.push(r.id);
     else if(diff<0) overdueList.push(`${r.id}(${-diff}天)`);
@@ -1685,12 +1623,13 @@ function renderOverview(){
     const pd=info.paymentDay;
     let dueHtml='<span style="color:var(--text3);font-size:11px">未設收款日</span>';
     if(pd){
-      const ds=dueStatus(r.id,pd);
-      const diff=ds.diff;
+      const today=new Date();
+      const curDay=today.getDate();
+      let dueDate=new Date(today.getFullYear(),today.getMonth(),pd);
+      if(pd<curDay) dueDate.setMonth(dueDate.getMonth()+1);
+      const diff=Math.ceil((dueDate-today)/(1000*60*60*24));
       let label='',cls='pay-circle-normal';
-      if(ds.thisPaid && !ds.paid && diff===1){
-        cls='pay-circle-warn'; label='📖 明天抄表';
-      } else if(ds.thisPaid || p.status==='paid'){
+      if(p.status==='paid'){
         cls='pay-circle-paid'; label='已繳';
       } else if(diff<0){
         cls='pay-circle-danger'; label=`逾期 ${-diff} 天`;
@@ -3069,15 +3008,18 @@ function toggleAllBackfill(check){
   updateBackfillTotal();
 }
 
+let lastBackfillIds=[]; // 記錄上次匯入的 id，用於撤銷
 function confirmBackfill(){
   const now=new Date().toISOString();
   let added=0;
+  const addedIds=[];
   backfillCandidates.forEach((x,i)=>{
     if(!document.getElementById(`bf-${i}`)?.checked) return;
     const tenant=ri(x.roomId).tenant||'';
     const y=x.monthKey.slice(0,4), m=x.monthKey.slice(4,6);
+    const newId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'_'+i;
     pettyCash.push({
-      id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'_'+i,
+      id:newId,
       type:'income',
       date:x.ps.date?x.ps.date.slice(0,10):`${y}-${m}-01`,
       amount:x.amt,
@@ -3090,14 +3032,41 @@ function confirmBackfill(){
       createdAt:now,
       updatedAt:now,
     });
+    addedIds.push(newId);
     added++;
   });
   if(added){
+    lastBackfillIds=addedIds;
     sd('rm_pettycash',pettyCash);
     renderPettyCashPage();
+    updateUndoBackfillBtn();
     toast(`✓ 已補入 ${added} 筆現金收租`);
   }
   document.getElementById('backfillModal').style.display='none';
+}
+
+function updateUndoBackfillBtn(){
+  const btn=document.getElementById('undoBackfillBtn');
+  if(!btn) return;
+  if(lastBackfillIds.length){
+    btn.style.display='';
+    btn.textContent=`↩️ 撤銷上次匯入 (${lastBackfillIds.length})`;
+  } else {
+    btn.style.display='none';
+  }
+}
+
+function undoLastBackfill(){
+  if(!lastBackfillIds.length){toast('⚠️ 沒有可撤銷的匯入');return;}
+  const count=lastBackfillIds.length;
+  if(!confirm(`確定撤銷上次匯入的 ${count} 筆零用金紀錄嗎？\n\n此動作會將這 ${count} 筆從零用金移除\n（繳費紀錄本身不受影響）`)) return;
+  const idSet=new Set(lastBackfillIds);
+  pettyCash=pettyCash.filter(p=>!idSet.has(p.id));
+  sd('rm_pettycash',pettyCash);
+  lastBackfillIds=[];
+  renderPettyCashPage();
+  updateUndoBackfillBtn();
+  toast(`↩️ 已撤銷 ${count} 筆匯入`);
 }
 
 function exportPettyCashCSV(){
