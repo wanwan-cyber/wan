@@ -856,6 +856,20 @@ textarea{resize:vertical;min-height:72px;}
           </div>
         </div>
       </div>
+      <!-- 權狀 / 文件存檔 -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><h3>📜 房屋權狀 / 文件存檔</h3></div>
+        <div class="card-body">
+          <div id="deedViewArea" style="margin-bottom:12px"></div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>上傳權狀圖片或 PDF</label>
+              <input type="file" id="deedFile" accept="image/*,.pdf" onchange="uploadDeed(this)">
+              <div class="form-hint">支援 JPG / PNG / PDF，建議 2MB 以下。檔案存在裝置本機（不上雲端），換裝置需重新上傳。</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -931,6 +945,20 @@ textarea{resize:vertical;min-height:72px;}
           <option value="">-- 未設定 --</option>
         </select>
         <div class="form-hint">選擇每月固定收款日（1～31 號），會顯示在繳費狀況</div>
+      </div>
+      <div class="section-divider">🏛️ 租金補貼</div>
+      <div class="form-row">
+        <div class="form-group"><label>申請狀態</label>
+          <select id="rmSubsidyStatus">
+            <option value="">未申請</option>
+            <option value="applied">📋 已申請（審核中）</option>
+            <option value="approved">✅ 已核准</option>
+            <option value="rejected">❌ 未通過</option>
+          </select>
+        </div>
+        <div class="form-group"><label>核准金額（元/月）</label>
+          <input id="rmSubsidyAmount" type="number" placeholder="2000（選填）">
+        </div>
       </div>
       <div class="form-group"><label>備註</label><textarea id="rmNote" placeholder="特殊約定、注意事項…"></textarea></div>
     </div>
@@ -1684,7 +1712,7 @@ function renderOverview(){
     }
     return `<div class="pay-row">
       <div class="pay-room">${r.id}</div>
-      <div class="pay-name">${info.tenant||'—'}</div>
+      <div class="pay-name">${info.tenant||'—'}${subsidyBadge(info)}</div>
       <div class="pay-due-wrap">${dueHtml}</div>
       <div>${p.status==='paid'?'<span class="badge badge-green">✓ 已繳</span>':p.status==='partial'?'<span class="badge badge-yellow">部分</span>':'<span class="badge badge-red">未繳</span>'}</div>
       <div class="pay-amt">$${t.toLocaleString()}</div>
@@ -1812,6 +1840,16 @@ function renderBuilding(){
 }
 
 // ── ROOMS TABLE ──
+function subsidyBadge(info){
+  if(!info) return '';
+  const s=info.subsidyStatus;
+  if(!s) return '';
+  const map={applied:{label:'🏛️ 租補審核中',color:'#8C6F4F',bg:'#FBF1DE'},
+             approved:{label:`🏛️ 租補 $${Number(info.subsidyAmount||0).toLocaleString()}`,color:'#5A8F65',bg:'#E5F0E7'},
+             rejected:{label:'🏛️ 租補未通過',color:'#B85450',bg:'#F8E8E7'}};
+  const m=map[s]; if(!m) return '';
+  return `<span class="badge" style="background:${m.bg};color:${m.color};margin-left:4px;font-size:10.5px">${m.label}</span>`;
+}
 function renderRoomsTable(){
   const q=(document.getElementById('roomSearch')||{}).value?.toLowerCase()||'';
   const filtered=MANAGED_ROOMS.filter(r=>{
@@ -1823,7 +1861,7 @@ function renderRoomsTable(){
     const info=ri(r.id),occ=info.status==='occupied';
     return `<tr>
       <td><button class="btn btn-primary btn-sm" onclick="openRoomModal('${r.id}')">編輯</button></td>
-      <td><strong>${r.id}</strong></td>
+      <td><strong>${r.id}</strong>${subsidyBadge(info)}</td>
       <td style="font-size:12px;color:var(--text2)">${r.floor} ${r.pos}</td>
       <td>${roomStatusBadge(info.status)}</td>
       <td>${info.tenant||'<span style="color:var(--text3)">—</span>'}</td>
@@ -1845,7 +1883,7 @@ function renderRoomsTable(){
       <div class="m-card-top">
         <div>
           <div class="m-card-room">${r.id} <span style="font-size:11px;color:var(--text3);font-weight:500">${r.floor} ${r.pos}</span></div>
-          <div class="m-card-tenant">${info.tenant||'—'} ${roomStatusBadge(info.status,'margin-left:4px')}</div>
+          <div class="m-card-tenant">${info.tenant||'—'} ${roomStatusBadge(info.status,'margin-left:4px')}${subsidyBadge(info)}</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openRoomModal('${r.id}')">編輯</button>
       </div>
@@ -1913,6 +1951,8 @@ function openRoomModal(id){
     return `<option value="${d}">每月 ${d} 號</option>`;
   }).join('');
   daySel.value=info.paymentDay||'';
+  document.getElementById('rmSubsidyStatus').value=info.subsidyStatus||'';
+  document.getElementById('rmSubsidyAmount').value=info.subsidyAmount||'';
   document.getElementById('rmNote').value=info.note||'';
   document.getElementById('roomModal').style.display='flex';
 }
@@ -1937,6 +1977,8 @@ function saveRoom(){
     rent:parseFloat(document.getElementById('rmRent').value)||0,
     deposit:parseFloat(document.getElementById('rmDeposit').value)||0,
     paymentDay:parseInt(document.getElementById('rmPaymentDay').value)||null,
+    subsidyStatus:document.getElementById('rmSubsidyStatus').value||'',
+    subsidyAmount:parseFloat(document.getElementById('rmSubsidyAmount').value)||0,
     note:document.getElementById('rmNote').value,
   };
   sd('rm_rooms',rooms); closeRoomModal(); updateSidebar();
@@ -3262,6 +3304,85 @@ function renderSettingsPage(){
   document.getElementById('curWaterRate').textContent=cfg.waterRate;
   document.getElementById('setElecRate').value=cfg.elecRate;
   document.getElementById('setWaterRate').value=cfg.waterRate;
+  renderDeedArea();
+}
+
+// ── 權狀 / 文件存檔（localStorage，單機） ──
+function renderDeedArea(){
+  const area=document.getElementById('deedViewArea');
+  if(!area) return;
+  const deed=localStorage.getItem('rm_deed');
+  const deedType=localStorage.getItem('rm_deed_type')||'';
+  const deedName=localStorage.getItem('rm_deed_name')||'房屋權狀';
+  const deedDate=localStorage.getItem('rm_deed_date')||'';
+  if(!deed){
+    area.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);background:var(--surface2);border:1.5px dashed var(--border);border-radius:10px">📂 尚未上傳權狀，請從下方上傳</div>';
+    return;
+  }
+  const isPdf=deedType==='application/pdf';
+  const preview=isPdf
+    ? `<embed src="${deed}" type="application/pdf" style="width:100%;height:400px;border:1px solid var(--border);border-radius:8px;background:#fff">`
+    : `<img src="${deed}" style="max-width:100%;max-height:400px;display:block;margin:0 auto;border:1px solid var(--border);border-radius:8px;background:#fff">`;
+  area.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <strong>📜 ${deedName}</strong>
+        ${deedDate?`<span style="font-size:12px;color:var(--text3);margin-left:8px">上傳於 ${deedDate}</span>`:''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="openDeedFull()">🔍 新視窗開啟</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadDeed()">📥 下載</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDeed()">🗑 刪除</button>
+      </div>
+    </div>
+    ${preview}
+  `;
+}
+function uploadDeed(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  if(f.size>5*1024*1024){
+    if(!confirm(`檔案 ${(f.size/1024/1024).toFixed(1)}MB 有點大，可能占用本機儲存空間且無法同步，仍要上傳？`)){
+      input.value='';return;
+    }
+  }
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      localStorage.setItem('rm_deed',e.target.result);
+      localStorage.setItem('rm_deed_type',f.type||'image/jpeg');
+      localStorage.setItem('rm_deed_name',f.name||'房屋權狀');
+      localStorage.setItem('rm_deed_date',new Date().toISOString().slice(0,10));
+      input.value='';
+      renderDeedArea();
+      toast('✓ 權狀已上傳（存於本機裝置）');
+    }catch(err){
+      alert('儲存失敗：'+err.message+'\n\n可能是檔案太大，請壓縮後再試。');
+    }
+  };
+  reader.readAsDataURL(f);
+}
+function openDeedFull(){
+  const deed=localStorage.getItem('rm_deed'); if(!deed) return;
+  const w=window.open('','_blank');
+  const isPdf=(localStorage.getItem('rm_deed_type')||'')==='application/pdf';
+  w.document.write(isPdf
+    ? `<title>房屋權狀</title><body style="margin:0"><embed src="${deed}" type="application/pdf" style="width:100vw;height:100vh">`
+    : `<title>房屋權狀</title><body style="margin:0;background:#222;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${deed}" style="max-width:100%;max-height:100vh">`);
+}
+function downloadDeed(){
+  const deed=localStorage.getItem('rm_deed'); if(!deed) return;
+  const a=document.createElement('a');
+  a.href=deed; a.download=localStorage.getItem('rm_deed_name')||'deed';
+  a.click();
+}
+function deleteDeed(){
+  if(!confirm('確定刪除本機存的權狀檔案？此動作無法復原。')) return;
+  localStorage.removeItem('rm_deed');
+  localStorage.removeItem('rm_deed_type');
+  localStorage.removeItem('rm_deed_name');
+  localStorage.removeItem('rm_deed_date');
+  renderDeedArea();
+  toast('🗑 已刪除');
 }
 function saveRates(){
   const e=parseFloat(document.getElementById('setElecRate').value);
